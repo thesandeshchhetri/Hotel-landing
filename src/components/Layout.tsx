@@ -58,7 +58,7 @@ function Layout() {
                 <p className={`text-xs transition-colors ${
                   isScrolled ? 'text-gray-600' : 'text-amber-100'
                 }`}>
-                  Thamel, Kathmandu
+                  {hotelInfo?.address || 'Hotel location'}
                 </p>
               </div>
             </Link>
@@ -162,10 +162,10 @@ function Layout() {
             <div>
               <h4 className="text-lg font-semibold mb-6">Quick Links</h4>
               <ul className="space-y-3">
-                {['Rooms', 'About', 'Our Team', 'Book Now'].map((item) => (
+                {[{ label: 'Rooms', path: '/rooms' }, { label: 'About', path: '/about' }, { label: 'Our Team', path: '/team' }, { label: 'Book Now', path: '/rooms' }].map((item) => (
                   <li key={item}>
                     <Link
-                      to={`/${item.toLowerCase().replace(' ', '-')}`}
+                      to={item.path}
                       className="text-gray-400 hover:text-amber-500 transition-colors"
                     >
                       {item}
