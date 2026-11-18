@@ -1,12 +1,13 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Menu, X, Phone, Mail, MapPin } from 'lucide-react';
-import type { HotelInfo } from '../types';
-import { getHotelInfo } from '../lib/api';
+import type { HotelInfo, SiteSettings } from '../types';
+import { getHotelInfo, getSiteSettings } from '../lib/api';
 
 function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hotelInfo, setHotelInfo] = useState<HotelInfo | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
@@ -20,6 +21,7 @@ function Layout() {
       }
     }
     fetchHotelInfo();
+    getSiteSettings().then(setSiteSettings).catch((error) => console.error('Failed to fetch website settings:', error));
   }, []);
 
   useEffect(() => {
@@ -136,7 +138,7 @@ function Layout() {
       </header>
 
       <main className="flex-grow">
-        <Outlet context={{ hotelInfo }} />
+        <Outlet context={{ hotelInfo, siteSettings }} />
       </main>
 
       <footer className="bg-gray-900 text-white">
