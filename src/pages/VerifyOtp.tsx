@@ -78,6 +78,7 @@ function VerifyOtp() {
       const result = await verifyBookingOtp(bookingId, otpCode);
       if (result.success && result.booking) {
         sessionStorage.setItem('confirmedBooking', JSON.stringify(result.booking));
+        setNotice(result.emailSent === false ? 'Your booking is confirmed, but the confirmation email could not be delivered. Please contact the hotel.' : 'A detailed booking confirmation email has been sent to your address.');
         setSuccess(true);
         sessionStorage.removeItem('pendingBooking');
         window.setTimeout(() => {
@@ -151,6 +152,7 @@ function VerifyOtp() {
             <div className="flex flex-col items-center justify-center py-8">
               <CheckCircle size={64} className="text-green-500 mb-4" />
               <p className="text-green-600 font-medium">Booking confirmed successfully!</p>
+              {notice && <p className="mt-3 text-center text-sm text-gray-600">{notice}</p>}
             </div>
           ) : (
             <>
