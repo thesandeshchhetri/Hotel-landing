@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Calendar, Users, Search, Filter, X, ArrowRight, Check } from 'lucide-react';
+import { Calendar, Users, Search, ArrowRight } from 'lucide-react';
 import type { AvailableRoom, Room } from '../types';
 import { getAvailableRooms, getRooms } from '../lib/api';
 
@@ -13,7 +13,6 @@ function Rooms() {
   const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || '');
   const [guests, setGuests] = useState(Number(searchParams.get('guests')) || 1);
   const [roomType, setRoomType] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];

@@ -10,10 +10,8 @@ function VerifyOtp() {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [resending, setResending] = useState(false);
   const [bookingId, setBookingId] = useState('');
   const [email, setEmail] = useState('');
-  const [guestName, setGuestName] = useState('');
 
   useEffect(() => {
     const pendingBooking = sessionStorage.getItem('pendingBooking');
@@ -21,11 +19,9 @@ function VerifyOtp() {
       const data = JSON.parse(pendingBooking);
       setBookingId(data.id);
       setEmail(data.email);
-      setGuestName(data.guest_name);
     } else if (location.state) {
       setBookingId(location.state.bookingId);
       setEmail(location.state.email);
-      setGuestName(location.state.guestName);
     } else {
       navigate('/');
     }

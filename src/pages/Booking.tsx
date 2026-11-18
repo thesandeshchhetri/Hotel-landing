@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { Calendar, Users, User, Mail, Phone, MessageSquare, ArrowLeft, Check, ArrowRight, Loader2 } from 'lucide-react';
+import { Calendar, Users, User, Mail, Phone, MessageSquare, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import type { Room } from '../types';
 import { getRoomById, createBooking } from '../lib/api';
 

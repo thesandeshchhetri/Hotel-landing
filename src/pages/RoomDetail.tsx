@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Calendar, Users, Check, ArrowLeft, MapPin, Star, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Check, ArrowLeft, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import type { Room } from '../types';
 import { getRoomById, getAvailableRooms } from '../lib/api';
 
