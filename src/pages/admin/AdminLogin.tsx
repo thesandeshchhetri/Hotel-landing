@@ -9,6 +9,32 @@ function AdminLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handlePasswordReset = async () => {
+    setError('');
+    setResetMessage('');
+
+    if (!email.trim()) {
+      setError('Enter your admin email address first, then choose Forgot password.');
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin + '/reset-password',
+      });
+      if (resetError) throw resetError;
+      setResetMessage('Password reset email sent. Open the newest email and follow its link to set a new password.');
+    } catch (err) {
+      console.error('Password reset request failed:', err);
+      setError(err instanceof Error ? err.message : 'Could not send a password reset email. Please try again.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +114,23 @@ function AdminLogin() {
                 required
               />
             </div>
+
+            <div className="text-right -mt-3">
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                disabled={resetLoading}
+                className="text-sm font-medium text-amber-700 hover:text-amber-800 disabled:opacity-50"
+              >
+                {resetLoading ? 'Sending reset email...' : 'Forgot password?'}
+              </button>
+            </div>
+
+            {resetMessage && (
+              <div role="status" className="text-sm text-green-700 bg-green-50 p-3 rounded-lg">
+                {resetMessage}
+              </div>
+            )}
 
             {error && (
               <div role="alert" className="flex items-center space-x-2 text-red-500 bg-red-50 p-3 rounded-lg">
