@@ -187,12 +187,12 @@ function Layout() {
               <h4 className="text-lg font-semibold mb-6">Quick Links</h4>
               <ul className="space-y-3">
                 {[{ label: 'Rooms', path: '/rooms' }, { label: 'About', path: '/about' }, { label: 'Our Team', path: '/team' }, { label: 'Book Now', path: '/rooms' }].map((item) => (
-                  <li key={item}>
+                  <li key={item.path}>
                     <Link
                       to={item.path}
                       className="text-gray-400 hover:text-amber-500 transition-colors"
                     >
-                      {item}
+                      {item.label}
                     </Link>
                   </li>
                 ))}
