@@ -1,9 +1,9 @@
 import { useOutletContext } from 'react-router-dom';
 import { MapPin, Calendar, Award, Heart, Users, Star } from 'lucide-react';
-import type { HotelInfo } from '../types';
+import type { HotelInfo, SiteSettings } from '../types';
 
 function About() {
-  const { hotelInfo } = useOutletContext<{ hotelInfo: HotelInfo | null }>();
+  const { hotelInfo, siteSettings } = useOutletContext<{ hotelInfo: HotelInfo | null; siteSettings: SiteSettings | null }>();
 
   const stats = [
     {
@@ -34,7 +34,7 @@ function About() {
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage: `url('https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg?auto=compress&cs=tinysrgb&w=1600')`,
+            backgroundImage: `url('${siteSettings?.page_images?.about_hero || 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg?auto=compress&cs=tinysrgb&w=1600'}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -70,22 +70,22 @@ function About() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <img
-                src="https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.about_gallery_1 || "https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Hotel heritage"
                 className="rounded-lg shadow-lg w-full h-48 object-cover"
               />
               <img
-                src="https://images.pexels.com/photos/2161463/pexels-photo-2161463.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.about_gallery_2 || "https://images.pexels.com/photos/2161463/pexels-photo-2161463.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Nepalese culture"
                 className="rounded-lg shadow-lg w-full h-48 object-cover mt-8"
               />
               <img
-                src="https://images.pexels.com/photos/2161449/pexels-photo-2161449.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.about_gallery_3 || "https://images.pexels.com/photos/2161449/pexels-photo-2161449.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Mountain views"
                 className="rounded-lg shadow-lg w-full h-48 object-cover"
               />
               <img
-                src="https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.about_gallery_4 || "https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Kathmandu"
                 className="rounded-lg shadow-lg w-full h-48 object-cover mt-8"
               />
