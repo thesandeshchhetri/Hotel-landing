@@ -5,6 +5,11 @@
 ALTER TABLE public.bookings
   ADD COLUMN IF NOT EXISTS confirmation_email_sent_at timestamptz;
 
+GRANT SELECT ON public.bookings TO service_role;
+GRANT SELECT ON public.rooms TO service_role;
+GRANT SELECT ON public.hotel_info TO service_role;
+GRANT UPDATE (confirmation_email_sent_at) ON public.bookings TO service_role;
+
 CREATE TABLE IF NOT EXISTS public.site_settings (
   id text PRIMARY KEY DEFAULT 'global' CHECK (id = 'global'),
   theme jsonb NOT NULL DEFAULT '{"primary":"#d97706","secondary":"#1f2937","accent":"#f59e0b","background":"#f9fafb","text":"#111827"}'::jsonb,
