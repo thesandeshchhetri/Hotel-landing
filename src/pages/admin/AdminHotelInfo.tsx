@@ -7,6 +7,7 @@ function AdminHotelInfo() {
   const [hotelInfo, setHotelInfo] = useState<HotelInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectedHeroFile, setSelectedHeroFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     tagline: '',
@@ -59,6 +60,22 @@ function AdminHotelInfo() {
     setSaving(true);
 
     try {
+      let heroImage = formData.hero_image;
+      if (selectedHeroFile) {
+        const refreshed = await supabase.auth.refreshSession();
+        if (refreshed.error || !refreshed.data.session) throw new Error('Your admin session has expired. Sign in again.');
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!userData.user || userData.user.app_metadata?.role !== 'admin') throw new Error('Administrator access is required.');
+        const safeName = selectedHeroFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+        const path = userData.user.id + '/hotel/' + crypto.randomUUID() + '-' + safeName;
+        const { error: uploadError } = await supabase.storage.from('room-images').upload(path, selectedHeroFile, {
+          cacheControl: '3600', contentType: selectedHeroFile.type, upsert: false,
+        });
+        if (uploadError) throw uploadError;
+        heroImage = supabase.storage.from('room-images').getPublicUrl(path).data.publicUrl;
+      }
+
       const updateData = {
         name: formData.name,
         tagline: formData.tagline,
@@ -69,7 +86,7 @@ function AdminHotelInfo() {
         opening_year: parseInt(formData.opening_year),
         total_rooms: parseInt(formData.total_rooms),
         amenities: formData.amenities.split(',').map(a => a.trim()).filter(Boolean),
-        hero_image: formData.hero_image,
+        hero_image: heroImage,
         updated_at: new Date().toISOString(),
       };
 
@@ -240,7 +257,25 @@ function AdminHotelInfo() {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hero Image URL
+                Upload Hero Image
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  event.target.value = '';
+                  if (file && (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type) || file.size > 5 * 1024 * 1024)) {
+                    alert('Choose a JPG, PNG, WEBP or AVIF image up to 5 MB.');
+                    return;
+                  }
+                  setSelectedHeroFile(file);
+                }}
+                className="mb-3 w-full text-sm text-gray-700"
+              />
+              {selectedHeroFile && <p className="mb-2 text-xs text-green-700">Selected: {selectedHeroFile.name}</p>}
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Or use Hero Image URL
               </label>
               <input
                 type="url"
