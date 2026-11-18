@@ -1,102 +1,127 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Mail, ArrowLeft, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { verifyBookingOtp } from '../lib/api';
+import { resendBookingOtp, verifyBookingOtp } from '../lib/api';
 
 function VerifyOtp() {
   const location = useLocation();
   const navigate = useNavigate();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [verifying, setVerifying] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [success, setSuccess] = useState(false);
   const [bookingId, setBookingId] = useState('');
   const [email, setEmail] = useState('');
+  const verifyInFlight = useRef(false);
 
   useEffect(() => {
     const pendingBooking = sessionStorage.getItem('pendingBooking');
     if (pendingBooking) {
-      const data = JSON.parse(pendingBooking);
-      setBookingId(data.id);
-      setEmail(data.email);
-    } else if (location.state) {
+      try {
+        const data = JSON.parse(pendingBooking);
+        if (typeof data.id === 'string' && typeof data.email === 'string') {
+          setBookingId(data.id);
+          setEmail(data.email);
+          return;
+        }
+      } catch {
+        sessionStorage.removeItem('pendingBooking');
+      }
+    }
+
+    if (location.state?.bookingId && location.state?.email) {
       setBookingId(location.state.bookingId);
       setEmail(location.state.email);
     } else {
       navigate('/');
     }
-  }, [location, navigate]);
+  }, [location.state, navigate]);
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      value = value[value.length - 1];
-    }
-
+    if (value.length > 1) value = value[value.length - 1];
     if (!/^\d*$/.test(value)) return;
 
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
+    setError('');
+    setNotice('');
 
     if (value && index < 5) {
       const nextInput = document.querySelector(`input[name=otp-${index + 1}]`) as HTMLInputElement;
-      if (nextInput) {
-        nextInput.focus();
-      }
+      nextInput?.focus();
     }
 
-    if (newOtp.every(digit => digit !== '')) {
-      handleVerify(newOtp.join(''));
+    if (newOtp.every((digit) => digit !== '')) {
+      void handleVerify(newOtp.join(''));
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.querySelector(`input[name=otp-${index - 1}]`) as HTMLInputElement;
-      if (prevInput) {
-        prevInput.focus();
-      }
+  const handleKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !otp[index] && index > 0) {
+      const previousInput = document.querySelector(`input[name=otp-${index - 1}]`) as HTMLInputElement;
+      previousInput?.focus();
     }
   };
 
   const handleVerify = async (otpCode: string) => {
-    if (!bookingId || otpCode.length !== 6) return;
+    if (!bookingId || otpCode.length !== 6 || verifyInFlight.current || resending) return;
 
+    verifyInFlight.current = true;
     setVerifying(true);
     setError('');
+    setNotice('');
 
     try {
       const result = await verifyBookingOtp(bookingId, otpCode);
-
       if (result.success && result.booking) {
         sessionStorage.setItem('confirmedBooking', JSON.stringify(result.booking));
         setSuccess(true);
         sessionStorage.removeItem('pendingBooking');
-        setTimeout(() => {
-          navigate('/booking-confirmation', {
-            state: {
-              bookingId,
-              email,
-            },
-          });
+        window.setTimeout(() => {
+          navigate('/booking-confirmation', { state: { bookingId, email } });
         }, 2000);
       } else {
-        setError('Invalid OTP. Please try again.');
+        setError(result.error || 'That code is invalid or has expired. Request a new code and try again.');
         setOtp(['', '', '', '', '', '']);
-        const firstInput = document.querySelector(`input[name=otp-0]`) as HTMLInputElement;
-        if (firstInput) {
-          firstInput.focus();
-        }
+        document.querySelector<HTMLInputElement>('input[name=otp-0]')?.focus();
       }
     } catch {
-      setError('Verification failed. Please try again.');
+      setError('We could not verify the code because of a connection or server error. Please try again.');
       setOtp(['', '', '', '', '', '']);
     } finally {
+      verifyInFlight.current = false;
       setVerifying(false);
     }
   };
 
-  if (!email) {
+  const handleResend = async () => {
+    if (!bookingId || !email || resending || verifying) return;
+
+    setResending(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const result = await resendBookingOtp(bookingId, email);
+      if (!result.success) {
+        setError(result.error || 'Unable to resend the verification code.');
+        return;
+      }
+
+      setOtp(['', '', '', '', '', '']);
+      setNotice(result.message || 'A new verification code has been sent. It expires in 10 minutes.');
+      document.querySelector<HTMLInputElement>('input[name=otp-0]')?.focus();
+    } catch {
+      setError('We could not send a new code. Please check your connection and try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  if (!email || !bookingId) {
     return (
       <div className="pt-20 min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-amber-600"></div>
@@ -134,16 +159,16 @@ function VerifyOtp() {
                   <input
                     key={index}
                     type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     name={`otp-${index}`}
                     value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onChange={(event) => handleOtpChange(index, event.target.value)}
+                    onKeyDown={(event) => handleKeyDown(index, event)}
                     maxLength={1}
-                    disabled={verifying}
+                    disabled={verifying || resending}
                     className="w-12 h-14 text-center text-2xl font-bold border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100 transition-all"
-                    style={{
-                      borderColor: error ? '#ef4444' : digit ? '#f59e0b' : '#d1d5db',
-                    }}
+                    style={{ borderColor: error ? '#ef4444' : digit ? '#f59e0b' : '#d1d5db' }}
                   />
                 ))}
               </div>
@@ -151,9 +176,11 @@ function VerifyOtp() {
               {error && (
                 <div className="flex items-center justify-center space-x-2 text-red-500 mb-6">
                   <XCircle size={18} />
-                  <span className="text-sm">{error}</span>
+                  <span className="text-sm text-center">{error}</span>
                 </div>
               )}
+
+              {notice && <p className="text-center text-sm text-green-600 mb-6">{notice}</p>}
 
               {verifying && (
                 <div className="flex items-center justify-center space-x-2 text-amber-600 mb-6">
@@ -163,13 +190,21 @@ function VerifyOtp() {
               )}
 
               <div className="text-center text-sm text-gray-500">
-                <p>Didn't receive the code?</p>
+                <p>Didn't receive the code or has it expired?</p>
                 <button
-                  onClick={() => setOtp(['', '', '', '', '', ''])}
-                  className="text-amber-600 hover:text-amber-700 font-medium mt-1"
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending || verifying}
+                  className="text-amber-600 hover:text-amber-700 font-semibold mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Clear and try again
+                  {resending ? (
+                    <span className="inline-flex items-center">
+                      <Loader2 size={16} className="animate-spin mr-2" />
+                      Sending new code...
+                    </span>
+                  ) : 'Resend verification code'}
                 </button>
+                <p className="text-xs text-gray-400 mt-2">Codes expire after 10 minutes. Resends are limited for security.</p>
               </div>
             </>
           )}
