@@ -36,11 +36,14 @@ Deno.serve(async req => {
         const date = (value: string) => new Date(value + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
         const details = [
           ["Confirmation number", booking.id.slice(0, 8).toUpperCase()],
+          ["Booking created", new Date(booking.created_at).toLocaleString("en-US")],
+          ["Email verified", "Yes"],
           ["Guest name", booking.guest_name],
           ["Email", booking.guest_email],
           ["Phone", booking.guest_phone],
           ["Room", room?.name || "Reserved room"],
           ["Room type", room?.room_type || "—"],
+          ["Room size", room?.size_sqft ? String(room.size_sqft) + " sq ft" : "—"],
           ["Check-in", date(booking.check_in_date)],
           ["Check-out", date(booking.check_out_date)],
           ["Nights", String(nights)],
@@ -50,22 +53,28 @@ Deno.serve(async req => {
           ["Status", "Confirmed"],
         ];
         const rows = details.map(([label, value]) => "<tr><td style='padding:9px 12px;color:#667085;border-bottom:1px solid #eee'>" + escapeHtml(label) + "</td><td style='padding:9px 12px;color:#101828;border-bottom:1px solid #eee;font-weight:600'>" + escapeHtml(value) + "</td></tr>").join("");
-        const mail = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: "Bearer " + mailKey, "Content-Type": "application/json", "Idempotency-Key": "booking-confirmation-" + bookingId },
-          body: JSON.stringify({
-            from: Deno.env.get("BOOKING_FROM_EMAIL") ?? hotelName + " <onboarding@resend.dev>",
-            to: [booking.guest_email],
-            subject: "Booking confirmed - " + hotelName + " (" + booking.id.slice(0, 8).toUpperCase() + ")",
-            html: "<div style='font-family:Arial,sans-serif;max-width:620px;margin:auto;padding:24px;color:#101828'><h1 style='color:#b45309'>" + escapeHtml(hotelName) + "</h1><h2>Your booking is confirmed</h2><p>Hello " + escapeHtml(booking.guest_name) + ",</p><p>Your email has been verified and your reservation is confirmed. Keep this email for your records.</p><table style='width:100%;border-collapse:collapse'>" + rows + "</table><p style='margin-top:24px;color:#667085'>Contact: " + escapeHtml(hotel?.phone || "") + " · " + escapeHtml(hotel?.email || "") + "<br>" + escapeHtml(hotel?.address || "") + "</p></div>"
-          })
-        });
-        if (mail.ok) {
+        let mailResponse: Response | null = null;
+        try {
+          mailResponse = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + mailKey, "Content-Type": "application/json", "Idempotency-Key": "booking-confirmation-" + bookingId },
+            body: JSON.stringify({
+              from: Deno.env.get("BOOKING_FROM_EMAIL") ?? hotelName + " <onboarding@resend.dev>",
+              to: [booking.guest_email],
+              subject: "Booking confirmed - " + hotelName + " (" + booking.id.slice(0, 8).toUpperCase() + ")",
+              html: "<div style='font-family:Arial,sans-serif;max-width:620px;margin:auto;padding:24px;color:#101828'><h1 style='color:#b45309'>" + escapeHtml(hotelName) + "</h1><h2>Your booking is confirmed</h2><p>Hello " + escapeHtml(booking.guest_name) + ",</p><p>Your email has been verified and your reservation is confirmed. Keep this email for your records.</p><table style='width:100%;border-collapse:collapse'>" + rows + "</table><p style='margin-top:24px;color:#667085'>Contact: " + escapeHtml(hotel?.phone || "") + " · " + escapeHtml(hotel?.email || "") + "<br>" + escapeHtml(hotel?.address || "") + "</p></div>"
+            })
+          });
+        } catch (mailError) {
+          console.error("Confirmation email request failed:", mailError);
+        }
+        if (mailResponse?.ok) {
           const { error: emailUpdateError } = await db.from("bookings").update({ confirmation_email_sent_at: new Date().toISOString() }).eq("id", bookingId).is("confirmation_email_sent_at", null);
           if (emailUpdateError) console.error("Confirmation email sent but tracking update failed:", emailUpdateError.message);
           emailSent = true;
-        } else {
-          console.error("Confirmation email delivery failed:", await mail.text());
+        } else if (mailResponse) {
+          console.error("Confirmation email delivery failed:", await mailResponse.text());
+        }
         }
       } else {
         console.error("Confirmation email not sent: RESEND_API_KEY is missing.");
