@@ -16,46 +16,27 @@ function AdminLogin() {
     setLoading(true);
 
     try {
-      // Simple authentication check against admin_users table
-      const { data: adminUser, error: fetchError } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('email', email)
-        .eq('is_active', true)
-        .maybeSingle();
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-      if (fetchError || !adminUser) {
-        setError('Invalid credentials');
-        setLoading(false);
+      if (authError || !data.user) {
+        setError('Invalid email or password.');
         return;
       }
 
-      // In production, you should verify the hashed password
-      // For demo purposes, any password works (implement proper bcrypt check in production)
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters');
-        setLoading(false);
+      // Admin roles must be assigned in trusted server-side Supabase metadata.
+      if (data.user.app_metadata?.role !== 'admin') {
+        await supabase.auth.signOut();
+        setError('This account does not have administrator access.');
         return;
       }
 
-      // Update last login
-      await supabase
-        .from('admin_users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', adminUser.id);
-
-      // Store admin session in localStorage (use proper auth in production)
-      localStorage.setItem('adminSession', JSON.stringify({
-        id: adminUser.id,
-        email: adminUser.email,
-        name: adminUser.name,
-        role: adminUser.role,
-      }));
-
-      navigate('/admin/rooms');
+      navigate('/admin/rooms', { replace: true });
     } catch (err) {
-      console.error('Login error:', err);
-      setError('Failed to login. Please try again.');
+      console.error('Admin login failed:', err);
+      setError('Unable to sign in right now. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -75,27 +56,31 @@ function AdminLogin() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="admin-email" className="block text-sm font-medium text-gray-700 mb-2">
                 <Mail size={16} className="inline mr-1" />
                 Email Address
               </label>
               <input
+                id="admin-email"
                 type="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                placeholder="admin@thamelheritage.com"
+                placeholder="admin@example.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="admin-password" className="block text-sm font-medium text-gray-700 mb-2">
                 <Lock size={16} className="inline mr-1" />
                 Password
               </label>
               <input
+                id="admin-password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
@@ -105,7 +90,7 @@ function AdminLogin() {
             </div>
 
             {error && (
-              <div className="flex items-center space-x-2 text-red-500 bg-red-50 p-3 rounded-lg">
+              <div role="alert" className="flex items-center space-x-2 text-red-500 bg-red-50 p-3 rounded-lg">
                 <AlertCircle size={18} />
                 <span className="text-sm">{error}</span>
               </div>
@@ -117,19 +102,19 @@ function AdminLogin() {
               className="w-full bg-gradient-to-r from-amber-600 to-amber-700 text-white py-3 rounded-lg font-semibold hover:from-amber-700 hover:to-amber-800 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               {loading ? (
-                <span>Logging in...</span>
+                <span>Signing in...</span>
               ) : (
                 <>
                   <LogIn size={18} />
-                  <span>Login</span>
+                  <span>Sign in</span>
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Demo credentials: admin@thamelheritage.com / any password (min 6 chars)</p>
-          </div>
+          <p className="mt-6 text-center text-sm text-gray-500">
+            Administrator accounts must be created and authorized by the project owner.
+          </p>
         </div>
       </div>
     </div>
