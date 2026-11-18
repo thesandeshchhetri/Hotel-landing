@@ -171,7 +171,7 @@ function About() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4">
-              Visit Us in Thamel
+              Visit Us
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto">
               Located in the heart of Kathmandu's most vibrant district, surrounded by shops, restaurants, and cultural attractions
@@ -197,7 +197,7 @@ function About() {
               </div>
               <div className="rounded-xl overflow-hidden h-64">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14131.069847688432!2d85.30728465!3d27.7150974!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb18fcf2c6f565%3A0x51c0b30d8f7f9c0!2sThamel%2C%20Kathmandu%2044600%2C%20Nepal!5e0!3m2!1sen!2s!4v1234567890"
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(hotelInfo?.address || 'Thamel, Kathmandu, Nepal')}&output=embed`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
