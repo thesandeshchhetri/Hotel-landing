@@ -402,7 +402,7 @@ function AdminBookings() {
                   <input required type="number" min="1" max={availableRooms.find((room) => room.id === editForm.room_id)?.capacity || 20} value={editForm.number_of_guests} onChange={(event) => setEditForm({ ...editForm, number_of_guests: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
                 </label>
                 <label className="block text-sm font-medium text-gray-700">Check-in
-                  <input required type="date" min={new Date().toISOString().slice(0, 10)} value={editForm.check_in_date} onChange={(event) => setEditForm({ ...editForm, check_in_date: event.target.value, check_out_date: editForm.check_out_date <= event.target.value ? '' : editForm.check_out_date })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                  <input required type="date" value={editForm.check_in_date} onChange={(event) => setEditForm({ ...editForm, check_in_date: event.target.value, check_out_date: editForm.check_out_date <= event.target.value ? '' : editForm.check_out_date })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
                 </label>
                 <label className="block text-sm font-medium text-gray-700">Check-out
                   <input required type="date" min={editForm.check_in_date ? new Date(new Date(editForm.check_in_date + 'T00:00:00').getTime() + 86400000).toISOString().slice(0, 10) : undefined} value={editForm.check_out_date} onChange={(event) => setEditForm({ ...editForm, check_out_date: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
