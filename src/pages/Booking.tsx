@@ -2,7 +2,34 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Calendar, Users, User, Mail, Phone, MessageSquare, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import type { Room } from '../types';
-import { getRoomById, createBooking } from '../lib/api';
+import { getRoomById, getAvailableRooms, createBooking } from '../lib/api';
+
+function localDateString(offsetDays = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function nextDate(dateString: string) {
+  const date = new Date(`${dateString}T00:00:00`);
+  date.setDate(date.getDate() + 1);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDate(dateString: string) {
+  return new Date(`${dateString}T00:00:00`).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 function Booking() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -11,6 +38,10 @@ function Booking() {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [checkIn, setCheckIn] = useState(searchParams.get('checkIn') || localDateString());
+  const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || localDateString(1));
+  const [availabilityStatus, setAvailabilityStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable' | 'error'>('idle');
+  const [availableCount, setAvailableCount] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     guest_name: '',
     guest_email: '',
@@ -19,33 +50,83 @@ function Booking() {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const checkIn = searchParams.get('checkIn') || new Date().toISOString().split('T')[0];
-  const checkOut = searchParams.get('checkOut') || new Date(Date.now() + 86400000).toISOString().split('T')[0];
   const guests = Number(searchParams.get('guests')) || 1;
-
-  const start = new Date(checkIn);
-  const end = new Date(checkOut);
-  const nights = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const today = localDateString();
+  const datesValid = checkIn >= today && checkOut > checkIn;
+  const start = new Date(`${checkIn}T00:00:00`);
+  const end = new Date(`${checkOut}T00:00:00`);
+  const nights = datesValid
+    ? Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   useEffect(() => {
-    fetchRoom();
+    let active = true;
+
+    const fetchRoom = async () => {
+      if (!roomId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const data = await getRoomById(roomId);
+        if (active) setRoom(data);
+      } catch (error) {
+        console.error('Failed to fetch room:', error);
+        if (active) setRoom(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void fetchRoom();
+    return () => {
+      active = false;
+    };
   }, [roomId]);
 
-  const fetchRoom = async () => {
-    if (!roomId) return;
-    setLoading(true);
-    try {
-      const data = await getRoomById(roomId);
-      setRoom(data);
-    } catch (error) {
-      console.error('Failed to fetch room:', error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    let active = true;
+
+    if (!roomId || !datesValid) {
+      setAvailableCount(null);
+      setAvailabilityStatus('idle');
+      return () => {
+        active = false;
+      };
     }
-  };
+
+    setAvailableCount(null);
+    setAvailabilityStatus('checking');
+
+    const checkAvailability = async () => {
+      try {
+        const availableRooms = await getAvailableRooms(checkIn, checkOut);
+        if (!active) return;
+        const selectedRoom = availableRooms.find((item) => item.id === roomId);
+        const count = selectedRoom?.available_inventory ?? 0;
+        setAvailableCount(count);
+        setAvailabilityStatus(count > 0 ? 'available' : 'unavailable');
+      } catch (error) {
+        console.error('Failed to check room availability:', error);
+        if (active) setAvailabilityStatus('error');
+      }
+    };
+
+    void checkAvailability();
+    return () => {
+      active = false;
+    };
+  }, [roomId, checkIn, checkOut, datesValid]);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
+
+    if (!datesValid) {
+      newErrors.dates = 'Choose a valid check-in and check-out date. Check-out must be after check-in.';
+    } else if (availabilityStatus !== 'available' || (availableCount ?? 0) < 1) {
+      newErrors.availability = 'This room is not available for the selected dates. Please choose different dates.';
+    }
 
     if (!formData.guest_name.trim()) {
       newErrors.guest_name = 'Name is required';
@@ -53,13 +134,13 @@ function Booking() {
 
     if (!formData.guest_email.trim()) {
       newErrors.guest_email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.guest_email)) {
+    } else if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(formData.guest_email)) {
       newErrors.guest_email = 'Invalid email format';
     }
 
     if (!formData.guest_phone.trim()) {
       newErrors.guest_phone = 'Phone number is required';
-    } else if (!/^\+?[\d\s-]{10,}$/.test(formData.guest_phone)) {
+    } else if (!/^\\+?[\\d\\s-]{10,}$/.test(formData.guest_phone)) {
       newErrors.guest_phone = 'Invalid phone number format';
     }
 
@@ -67,11 +148,23 @@ function Booking() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleCheckInChange = (value: string) => {
+    setCheckIn(value);
+    if (value && checkOut <= value) {
+      setCheckOut(nextDate(value));
+    }
+    setErrors((current) => ({ ...current, dates: '', availability: '', submit: '' }));
+  };
+
+  const handleCheckOutChange = (value: string) => {
+    setCheckOut(value);
+    setErrors((current) => ({ ...current, dates: '', availability: '', submit: '' }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm() || !room) return;
+    if (!validateForm() || !room || availabilityStatus !== 'available') return;
 
     setSubmitting(true);
     try {
@@ -101,7 +194,7 @@ function Booking() {
       });
     } catch (error) {
       console.error('Failed to create booking:', error);
-      setErrors({ submit: 'Failed to create booking. Please try again.' });
+      setErrors({ submit: 'Failed to create booking. The room may no longer be available for these dates. Please check the dates and try again.' });
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +241,7 @@ function Booking() {
             Complete Your Booking
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Please fill in your details to reserve {room.name}. An OTP will be sent to your email for verification.
+            Please fill in your details to reserve {room.name}. You can change your stay dates below. An OTP will be sent to your email for verification.
           </p>
         </div>
 
@@ -156,6 +249,64 @@ function Booking() {
           <div className="lg:col-span-2">
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Guest Information</h2>
+
+              <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Stay Dates</h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="booking-check-in" className="block text-sm font-medium text-gray-700 mb-2">
+                      <Calendar size={16} className="inline mr-1" />
+                      Check-in
+                    </label>
+                    <input
+                      id="booking-check-in"
+                      type="date"
+                      value={checkIn}
+                      min={today}
+                      onChange={(e) => handleCheckInChange(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="booking-check-out" className="block text-sm font-medium text-gray-700 mb-2">
+                      <Calendar size={16} className="inline mr-1" />
+                      Check-out
+                    </label>
+                    <input
+                      id="booking-check-out"
+                      type="date"
+                      value={checkOut}
+                      min={checkIn ? nextDate(checkIn) : nextDate(today)}
+                      onChange={(e) => handleCheckOutChange(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </div>
+                {availabilityStatus === 'checking' && (
+                  <p className="mt-3 text-sm text-gray-600 flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" /> Checking room availability for these dates...
+                  </p>
+                )}
+                {availabilityStatus === 'available' && (
+                  <p className="mt-3 text-sm text-green-700">
+                    {availableCount} room{availableCount === 1 ? '' : 's'} available for your selected dates.
+                  </p>
+                )}
+                {availabilityStatus === 'unavailable' && (
+                  <p className="mt-3 text-sm text-red-600">
+                    This room is fully booked for these dates. Please select another date range.
+                  </p>
+                )}
+                {availabilityStatus === 'error' && (
+                  <p className="mt-3 text-sm text-red-600">
+                    We could not check availability. Please change the dates or refresh the page and try again.
+                  </p>
+                )}
+                {errors.dates && <p className="mt-2 text-sm text-red-600">{errors.dates}</p>}
+                {errors.availability && <p className="mt-2 text-sm text-red-600">{errors.availability}</p>}
+              </div>
 
               <div className="space-y-6">
                 <div>
@@ -167,14 +318,10 @@ function Booking() {
                     type="text"
                     value={formData.guest_name}
                     onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 transition-colors ${
-                      errors.guest_name ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 transition-colors ${errors.guest_name ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="Enter your full name"
                   />
-                  {errors.guest_name && (
-                    <p className="text-red-500 text-sm mt-1">{errors.guest_name}</p>
-                  )}
+                  {errors.guest_name && <p className="text-red-500 text-sm mt-1">{errors.guest_name}</p>}
                 </div>
 
                 <div>
@@ -186,17 +333,11 @@ function Booking() {
                     type="email"
                     value={formData.guest_email}
                     onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 transition-colors ${
-                      errors.guest_email ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 transition-colors ${errors.guest_email ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="your.email@example.com"
                   />
-                  {errors.guest_email && (
-                    <p className="text-red-500 text-sm mt-1">{errors.guest_email}</p>
-                  )}
-                  <p className="text-gray-500 text-sm mt-1">
-                    OTP will be sent to this email for verification
-                  </p>
+                  {errors.guest_email && <p className="text-red-500 text-sm mt-1">{errors.guest_email}</p>}
+                  <p className="text-gray-500 text-sm mt-1">OTP will be sent to this email for verification</p>
                 </div>
 
                 <div>
@@ -208,14 +349,10 @@ function Booking() {
                     type="tel"
                     value={formData.guest_phone}
                     onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 transition-colors ${
-                      errors.guest_phone ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-amber-500 transition-colors ${errors.guest_phone ? 'border-red-500' : 'border-gray-300'}`}
                     placeholder="+977 98XXXXXXXX"
                   />
-                  {errors.guest_phone && (
-                    <p className="text-red-500 text-sm mt-1">{errors.guest_phone}</p>
-                  )}
+                  {errors.guest_phone && <p className="text-red-500 text-sm mt-1">{errors.guest_phone}</p>}
                 </div>
 
                 <div>
@@ -242,7 +379,7 @@ function Booking() {
               <div className="mt-8">
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || availabilityStatus === 'checking' || availabilityStatus !== 'available' || (availableCount ?? 0) < 1 || !datesValid}
                   className="w-full bg-gradient-to-r from-amber-600 to-amber-700 text-white py-4 rounded-lg font-semibold hover:from-amber-700 hover:to-amber-800 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center space-x-2"
                 >
                   {submitting ? (
@@ -284,7 +421,7 @@ function Booking() {
                       <Calendar size={18} className="mr-3 text-amber-600" />
                       <div>
                         <p className="text-sm text-gray-500">Check-in</p>
-                        <p className="font-medium">{new Date(checkIn).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                        <p className="font-medium">{formatDate(checkIn)}</p>
                       </div>
                     </div>
 
@@ -292,7 +429,7 @@ function Booking() {
                       <Calendar size={18} className="mr-3 text-amber-600" />
                       <div>
                         <p className="text-sm text-gray-500">Check-out</p>
-                        <p className="font-medium">{new Date(checkOut).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                        <p className="font-medium">{formatDate(checkOut)}</p>
                       </div>
                     </div>
 
@@ -307,8 +444,8 @@ function Booking() {
 
                   <div className="border-t border-gray-200 mt-4 pt-4">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">${room.price_per_night} x {nights} night{nights > 1 ? 's' : ''}</span>
-                      <span className="font-medium">${(room.price_per_night * nights).toFixed(2)}</span>
+                      <span className="text-gray-600">${room.price_per_night} x {nights} night{nights === 1 ? '' : 's'}</span>
+                      <span className="font-medium">${totalAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center text-lg font-bold">
                       <span>Total</span>
