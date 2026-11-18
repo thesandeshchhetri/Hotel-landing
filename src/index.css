@@ -93,3 +93,10 @@ body {
     scrollbar-width: none;
   }
 }
+
+/* Admin-configurable public website theme overrides */
+body { background-color: var(--site-background) !important; color: var(--site-text) !important; }
+.bg-gray-900 { background-color: var(--site-secondary) !important; }
+.bg-gray-800 { background-color: color-mix(in srgb, var(--site-secondary) 88%, white) !important; }
+.bg-gray-50 { background-color: var(--site-background) !important; }
+.text-gray-900 { color: var(--site-text) !important; }
