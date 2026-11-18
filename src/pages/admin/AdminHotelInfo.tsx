@@ -98,6 +98,7 @@ function AdminHotelInfo() {
         if (error) throw error;
       }
 
+      setSelectedHeroFile(null);
       alert('Hotel information updated successfully!');
       fetchHotelInfo();
     } catch (error) {
