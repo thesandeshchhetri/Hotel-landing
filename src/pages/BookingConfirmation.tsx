@@ -187,7 +187,7 @@ function BookingConfirmation() {
 
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-8">
               <p className="text-blue-800 text-sm">
-                A confirmation email has been sent to <strong>{booking.guest_email}</strong> with all your booking details.
+                Your email address <strong>{booking.guest_email}</strong> was verified successfully.
                 Please save your confirmation number for future reference.
               </p>
             </div>

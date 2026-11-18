@@ -55,6 +55,7 @@ Example deployment commands:
 ```bash
 supabase functions deploy create-booking
 supabase functions deploy verify-otp
+supabase functions deploy send-otp  # deploys the retired 410 response over any old deployed endpoint
 supabase secrets set RESEND_API_KEY=your_resend_key OTP_HASH_SECRET=your_random_secret
 ```
 
