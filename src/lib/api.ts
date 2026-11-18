@@ -77,3 +77,15 @@ export async function resendBookingOtp(bookingId: string, email: string): Promis
   if (error) throw error;
   return data;
 }
+
+
+export async function getSiteSettings(): Promise<SiteSettings | null> {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('*')
+    .eq('id', 'global')
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as SiteSettings | null;
+}
