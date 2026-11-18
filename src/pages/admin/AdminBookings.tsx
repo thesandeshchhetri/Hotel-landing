@@ -234,13 +234,15 @@ function AdminBookings() {
                       </button>
                       {booking.status === 'pending' && (
                         <>
-                          <button
-                            onClick={() => updateBookingStatus(booking.id, 'confirmed')}
-                            className="text-green-600 hover:text-green-700 mr-2"
-                            title="Confirm"
-                          >
-                            <CheckCircle size={18} />
-                          </button>
+                          {booking.otp_verified && (
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                              className="text-green-600 hover:text-green-700 mr-2"
+                              title="Confirm"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                          )}
                           <button
                             onClick={() => updateBookingStatus(booking.id, 'cancelled')}
                             className="text-red-600 hover:text-red-700"
@@ -345,15 +347,17 @@ function AdminBookings() {
                 </button>
                 {selectedBooking.status === 'pending' && (
                   <>
-                    <button
-                      onClick={() => {
-                        updateBookingStatus(selectedBooking.id, 'confirmed');
-                        setSelectedBooking(null);
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      Confirm
-                    </button>
+                    {selectedBooking.otp_verified && (
+                      <button
+                        onClick={() => {
+                          updateBookingStatus(selectedBooking.id, 'confirmed');
+                          setSelectedBooking(null);
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      >
+                        Confirm
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         updateBookingStatus(selectedBooking.id, 'cancelled');
