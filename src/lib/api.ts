@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { HotelInfo, Room, TeamMember, Booking, BookingFormData, AvailableRoom } from '../types';
+import type { HotelInfo, Room, TeamMember, Booking, BookingFormData, AvailableRoom, SiteSettings } from '../types';
 
 export async function getHotelInfo(): Promise<HotelInfo | null> {
   const { data, error } = await supabase
