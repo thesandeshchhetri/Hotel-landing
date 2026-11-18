@@ -97,3 +97,17 @@ export interface DateRange {
   checkIn: string;
   checkOut: string;
 }
+
+
+export interface SiteSettings {
+  id: string;
+  theme: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+  };
+  page_images: Record<string, string>;
+  updated_at: string;
+}
