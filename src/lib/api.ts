@@ -57,17 +57,6 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   return data || [];
 }
 
-export async function getBookingByOtp(email: string, otp: string): Promise<Booking | null> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select('*, room:rooms(*)')
-    .eq('guest_email', email)
-    .eq('otp_code', otp)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data;
-}
 
 export async function createBooking(formData: BookingFormData): Promise<{ id: string }> {
   const { data, error } = await supabase.functions.invoke('create-booking', { body: formData });

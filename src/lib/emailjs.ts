@@ -9,9 +9,12 @@ export interface EmailOTPData {
 
 export const initEmailJS = (): void => {};
 
-export const sendOTPEmail = async (_data: EmailOTPData): Promise<{ success: boolean; error?: string }> => ({
+export const sendOTPEmail = async (data: EmailOTPData): Promise<{ success: boolean; error?: string }> => {
+  void data;
+  return {
   success: false,
   error: 'Client-side OTP email delivery is disabled. Use the create-booking Edge Function.',
-});
+  };
+};
 
 export const isEmailJSConfigured = (): boolean => false;

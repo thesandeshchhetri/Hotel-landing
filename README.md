@@ -15,7 +15,7 @@ A hotel website and reservation application built with React, TypeScript, Vite a
 - React 18, TypeScript and Vite
 - Tailwind CSS and Lucide icons
 - Supabase PostgreSQL, Row Level Security and Edge Functions
-- EmailJS client integration (legacy) and Resend Edge Function integration
+- Resend Edge Function email delivery
 
 ## Local development
 
@@ -90,10 +90,10 @@ npm run preview   # Preview production build
 This repository is an active starter project, not yet a production-certified booking platform.
 
 - Review every Supabase RLS policy before accepting real customer data.
-- The current initial migration contains a public booking SELECT policy. It exposes booking rows and must be replaced with a private confirmation flow before production.
-- Review the OTP flow for server-side generation, rate limiting, attempt limits, expiry, and safe responses. Do not return OTP values to browsers or log them.
-- The legacy EmailJS fallback reports success when email is not configured; configure a real mail provider and remove development fallbacks before launch.
-- Validate booking prices, room inventory and date availability on the server; do not trust totals or status values supplied by the browser.
+- Apply the private-booking migration before launch; verify in Supabase that anonymous users cannot SELECT or INSERT booking rows and only admin-role users can read/manage them.
+- The new OTP flow uses server-generated codes, HMAC digests, a 10-minute expiry and a five-attempt lock. Add edge/network-level abuse controls and monitor delivery failures before public launch.
+- Configure and verify the Resend sender domain and set a strong `OTP_HASH_SECRET`; without these secrets the booking flow intentionally fails closed.
+- Booking price and inventory are calculated server-side under a room-row lock; still test concurrent booking requests against your real inventory before production.
 - Add payment processing only through a verified server-side payment workflow.
 
 ## Continuous integration

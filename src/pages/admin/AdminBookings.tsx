@@ -36,8 +36,8 @@ function AdminBookings() {
 
   const updateBookingStatus = async (id: string, status: string) => {
     try {
-      const updates: any = {
-        status,
+      const updates: Partial<Booking> = {
+        status: status as Booking['status'],
         updated_at: new Date().toISOString(),
       };
 

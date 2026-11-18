@@ -6,6 +6,9 @@ ALTER TABLE public.bookings
 
 -- Legacy OTPs were plaintext and must never remain usable.
 UPDATE public.bookings SET otp_code = '', otp_hash = NULL WHERE otp_code <> '';
+UPDATE public.bookings
+  SET status = 'cancelled', cancelled_at = now(), cancelled_reason = 'Legacy OTP verification retired', updated_at = now()
+  WHERE status = 'pending' AND otp_verified = false;
 
 DROP POLICY IF EXISTS "Users can view own bookings" ON public.bookings;
 DROP POLICY IF EXISTS "Public can create bookings" ON public.bookings;
@@ -28,7 +31,7 @@ CREATE OR REPLACE FUNCTION public.create_booking_with_otp(
   p_check_in date, p_check_out date, p_guests integer, p_special_requests text,
   p_otp_hash text, p_otp_expires_at timestamptz
 ) RETURNS uuid
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public
 AS $$
 DECLARE
   v_room public.rooms%ROWTYPE;

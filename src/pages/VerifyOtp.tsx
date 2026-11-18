@@ -88,7 +88,7 @@ function VerifyOtp() {
           firstInput.focus();
         }
       }
-    } catch (err) {
+    } catch {
       setError('Verification failed. Please try again.');
       setOtp(['', '', '', '', '', '']);
     } finally {
