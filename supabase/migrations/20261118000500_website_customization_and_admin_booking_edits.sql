@@ -10,6 +10,50 @@ GRANT SELECT ON public.rooms TO service_role;
 GRANT SELECT ON public.hotel_info TO service_role;
 GRANT UPDATE (confirmation_email_sent_at) ON public.bookings TO service_role;
 
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('room-images', 'room-images', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/avif'])
+ON CONFLICT (id) DO UPDATE
+SET public = EXCLUDED.public,
+    file_size_limit = EXCLUDED.file_size_limit,
+    allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DROP POLICY IF EXISTS "Public can view room images" ON storage.objects;
+CREATE POLICY "Public can view room images"
+  ON storage.objects FOR SELECT TO anon, authenticated
+  USING (bucket_id = 'room-images');
+
+DROP POLICY IF EXISTS "Admins can upload room images" ON storage.objects;
+CREATE POLICY "Admins can upload room images"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'room-images'
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  );
+
+DROP POLICY IF EXISTS "Admins can update room images" ON storage.objects;
+CREATE POLICY "Admins can update room images"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (
+    bucket_id = 'room-images'
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  )
+  WITH CHECK (
+    bucket_id = 'room-images'
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  );
+
+DROP POLICY IF EXISTS "Admins can delete room images" ON storage.objects;
+CREATE POLICY "Admins can delete room images"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'room-images'
+    AND (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+    AND (storage.foldername(name))[1] = (SELECT auth.uid())::text
+  );
+
 CREATE TABLE IF NOT EXISTS public.site_settings (
   id text PRIMARY KEY DEFAULT 'global' CHECK (id = 'global'),
   theme jsonb NOT NULL DEFAULT '{"primary":"#d97706","secondary":"#1f2937","accent":"#f59e0b","background":"#f9fafb","text":"#111827"}'::jsonb,
