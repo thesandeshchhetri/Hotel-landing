@@ -56,7 +56,8 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO v_conflicts FROM public.bookings
-    WHERE room_id = p_room_id AND status IN ('pending','confirmed')
+    WHERE room_id = p_room_id
+      AND (status = 'confirmed' OR (status = 'pending' AND otp_expires_at > now()))
       AND check_in_date < p_check_out AND check_out_date > p_check_in;
   IF v_conflicts >= v_room.total_inventory THEN
     RAISE EXCEPTION 'No rooms available for these dates';
@@ -155,7 +156,7 @@ BEGIN
 
   RETURN QUERY
   SELECT r.id, r.name, r.description, r.price_per_night, r.capacity,
-    (r.total_inventory - (
+    GREATEST(0, r.total_inventory - (
       SELECT count(*)::integer
       FROM public.bookings b
       WHERE b.room_id = r.id
