@@ -75,9 +75,9 @@ Deno.serve(async req => {
         } else if (mailResponse) {
           console.error("Confirmation email delivery failed:", await mailResponse.text());
         }
+        } else {
+          console.error("Confirmation email not sent: RESEND_API_KEY is missing.");
         }
-      } else {
-        console.error("Confirmation email not sent: RESEND_API_KEY is missing.");
       }
     }
     return reply({ success: true, booking, emailSent });
