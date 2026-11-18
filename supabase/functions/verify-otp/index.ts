@@ -79,7 +79,6 @@ Deno.serve(async req => {
           console.error("Confirmation email not sent: RESEND_API_KEY is missing.");
         }
       }
-    }
     return reply({ success: true, booking, emailSent });
   } catch (e) {
     console.error("verify-otp error:", e);
