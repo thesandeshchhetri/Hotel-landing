@@ -43,9 +43,20 @@ Only the Supabase anon/publishable key belongs in the browser. **Never put the S
 
 1. Create a Supabase project and configure its URL and anon key in `.env`.
 2. Apply the SQL migrations in `supabase/migrations` in filename order (or use the Supabase CLI).
-3. Deploy the `send-otp` and `verify-otp` Edge Functions.
-4. Configure the `RESEND_API_KEY` secret for the `send-otp` function and verify the sender domain with Resend.
+3. Deploy the `create-booking` and `verify-otp` Edge Functions. The legacy `send-otp` endpoint is disabled.
+4. Configure Edge Function secrets: `RESEND_API_KEY`, `OTP_HASH_SECRET` (a random secret of at least 32 bytes), and optionally `BOOKING_FROM_EMAIL`. Verify the sender domain with Resend before production.
 5. Configure the site's allowed redirect URLs and authentication settings in Supabase.
+6. Apply the migration `20261118000200_secure_booking_and_otp.sql` before accepting bookings. It removes public booking reads/inserts and clears legacy plaintext OTP values.
+
+Generate an OTP HMAC secret with `openssl rand -hex 32`, then set it as the Supabase Edge Function secret. Do not commit the secret or expose it in a `VITE_*` variable.
+
+Example deployment commands:
+
+```bash
+supabase functions deploy create-booking
+supabase functions deploy verify-otp
+supabase secrets set RESEND_API_KEY=your_resend_key OTP_HASH_SECRET=your_random_secret
+```
 
 ### Provision an administrator
 

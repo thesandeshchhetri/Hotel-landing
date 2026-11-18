@@ -18,7 +18,7 @@ CREATE POLICY "Admins can manage bookings"
 
 REVOKE ALL ON public.bookings FROM anon;
 REVOKE INSERT, UPDATE, DELETE ON public.bookings FROM authenticated;
-GRANT SELECT ON public.bookings TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.bookings TO authenticated;
 
 CREATE INDEX IF NOT EXISTS idx_bookings_email_created
   ON public.bookings (guest_email, created_at DESC);
