@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Mail, Award } from 'lucide-react';
-import type { TeamMember } from '../types';
+import { useOutletContext } from 'react-router-dom';
+import type { TeamMember, SiteSettings } from '../types';
 import { getTeamMembers } from '../lib/api';
 
 function Team() {
+  const { siteSettings } = useOutletContext<{ siteSettings: SiteSettings | null }>();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +30,7 @@ function Team() {
         <div
           className="absolute inset-0 opacity-20"
           style={{
-            backgroundImage: `url('https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1600')`,
+            backgroundImage: `url('${siteSettings?.page_images?.team_hero || 'https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1600'}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
