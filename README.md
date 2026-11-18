@@ -46,7 +46,7 @@ Only the Supabase anon/publishable key belongs in the browser. **Never put the S
 3. Deploy the `create-booking` and `verify-otp` Edge Functions. The legacy `send-otp` endpoint is disabled.
 4. Configure Edge Function secrets: `RESEND_API_KEY`, `OTP_HASH_SECRET` (a random secret of at least 32 bytes), and optionally `BOOKING_FROM_EMAIL`. Verify the sender domain with Resend before production.
 5. Configure the site's allowed redirect URLs and authentication settings in Supabase.
-6. Apply the migration `20261118000200_secure_booking_and_otp.sql` before accepting bookings. It removes public booking reads/inserts and clears legacy plaintext OTP values.
+6. Apply the migration `20261118000200_secure_booking_and_otp.sql` before accepting bookings. It removes public booking reads/inserts, clears legacy plaintext OTP values, and marks old unverified pending reservations as cancelled so they no longer hold inventory. Review pending reservations and notify affected guests before applying this migration to a live database.
 
 Generate an OTP HMAC secret with `openssl rand -hex 32`, then set it as the Supabase Edge Function secret. Do not commit the secret or expose it in a `VITE_*` variable.
 
