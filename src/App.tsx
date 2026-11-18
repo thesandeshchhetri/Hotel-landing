@@ -15,6 +15,7 @@ import AdminRooms from './pages/admin/AdminRooms';
 import AdminBookings from './pages/admin/AdminBookings';
 import AdminTeam from './pages/admin/AdminTeam';
 import AdminHotelInfo from './pages/admin/AdminHotelInfo';
+import AdminWebsiteSettings from './pages/admin/AdminWebsiteSettings';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="team" element={<AdminTeam />} />
           <Route path="hotel-info" element={<AdminHotelInfo />} />
+          <Route path="website-settings" element={<AdminWebsiteSettings />} />
         </Route>
       </Routes>
     </Router>
