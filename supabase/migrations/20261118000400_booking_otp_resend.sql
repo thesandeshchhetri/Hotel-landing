@@ -100,7 +100,7 @@ DECLARE
 BEGIN
   IF p_guest_name IS NULL OR length(trim(p_guest_name)) NOT BETWEEN 2 AND 120
      OR p_guest_email IS NULL OR length(p_guest_email) > 254
-     OR p_guest_email !~* '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'
+     OR p_guest_email !~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
      OR p_guest_phone IS NULL OR length(trim(p_guest_phone)) NOT BETWEEN 7 AND 30
      OR p_check_in < current_date OR p_check_out <= p_check_in
      OR p_guests < 1 OR p_guests > 20
