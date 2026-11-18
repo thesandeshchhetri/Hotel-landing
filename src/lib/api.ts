@@ -64,7 +64,7 @@ export async function createBooking(formData: BookingFormData): Promise<{ id: st
   return { id: data.id };
 }
 
-export async function verifyBookingOtp(bookingId: string, otp: string): Promise<{ success: boolean; booking?: Booking; error?: string }> {
+export async function verifyBookingOtp(bookingId: string, otp: string): Promise<{ success: boolean; booking?: Booking; error?: string; emailSent?: boolean }> {
   const { data, error } = await supabase.functions.invoke('verify-otp', { body: { bookingId, otp } });
   if (error) throw error;
   return data;
