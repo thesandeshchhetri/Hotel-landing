@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Home, Users, Calendar, Settings, LogOut, Menu, X, Bed, UserCircle } from 'lucide-react';
+import { Home, Users, Calendar, Settings, LogOut, Menu, X, Bed, UserCircle, Palette } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface AdminSession {
@@ -54,6 +54,7 @@ function AdminDashboard() {
     { path: '/admin/bookings', icon: Calendar, label: 'Bookings' },
     { path: '/admin/team', icon: Users, label: 'Team' },
     { path: '/admin/hotel-info', icon: Settings, label: 'Hotel Info' },
+    { path: '/admin/website-settings', icon: Palette, label: 'Website Appearance' },
   ];
 
   if (!adminSession) {
