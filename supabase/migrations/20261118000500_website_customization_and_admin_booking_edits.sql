@@ -79,7 +79,8 @@ BEGIN
 
   IF p_check_in IS NULL OR p_check_out IS NULL
      OR p_check_out <= p_check_in
-     OR (p_status IN ('pending', 'confirmed') AND p_check_in < current_date) THEN
+     OR (p_status IN ('pending', 'confirmed') AND p_check_in < current_date
+         AND (p_check_in <> v_current.check_in_date OR p_check_out <> v_current.check_out_date)) THEN
     RAISE EXCEPTION 'Choose valid future check-in and check-out dates';
   END IF;
 
