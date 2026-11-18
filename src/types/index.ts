@@ -53,6 +53,7 @@ export interface Booking {
   cancelled_at: string | null;
   cancelled_reason: string | null;
   confirmed_at: string | null;
+  confirmation_email_sent_at: string | null;
   created_at: string;
   updated_at: string;
   room?: Room;
