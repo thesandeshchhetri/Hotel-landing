@@ -57,7 +57,6 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   return data || [];
 }
 
-
 export async function createBooking(formData: BookingFormData): Promise<{ id: string }> {
   const { data, error } = await supabase.functions.invoke('create-booking', { body: formData });
   if (error) throw error;
@@ -71,3 +70,10 @@ export async function verifyBookingOtp(bookingId: string, otp: string): Promise<
   return data;
 }
 
+export async function resendBookingOtp(bookingId: string, email: string): Promise<{ success: boolean; message?: string; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('send-otp', {
+    body: { bookingId, email },
+  });
+  if (error) throw error;
+  return data;
+}
