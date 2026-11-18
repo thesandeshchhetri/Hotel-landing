@@ -143,25 +143,20 @@ function AdminRooms() {
   };
 
   const ensureAdminSession = async (): Promise<string> => {
-    let { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    if (!data.session) {
-      throw new Error('Your admin session has expired. Please sign in again.');
-    }
-
-    if (data.session.expires_at && data.session.expires_at * 1000 < Date.now() + 60_000) {
-      const refreshed = await supabase.auth.refreshSession();
-      if (refreshed.error || !refreshed.data.session) {
-        throw new Error('Your admin session could not be refreshed. Please sign in again.');
-      }
-      data = { session: refreshed.data.session };
+    // Refresh the JWT before privileged operations so recently assigned app_metadata
+    // roles are reflected in the token evaluated by Supabase RLS policies.
+    const refreshed = await supabase.auth.refreshSession();
+    if (refreshed.error || !refreshed.data.session) {
+      throw new Error('Your admin session has expired. Please sign out and sign in again.');
     }
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) throw userError;
+
     if (!userData.user || userData.user.app_metadata?.role !== 'admin') {
       throw new Error('This account does not have administrator access. Sign in with an authorized admin account.');
     }
+
     return userData.user.id;
   };
 
