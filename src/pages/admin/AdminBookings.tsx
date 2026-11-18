@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { Search, CheckCircle, XCircle, Clock, Eye, Pencil, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Booking, Room } from '../../types';
 
@@ -13,10 +13,48 @@ function AdminBookings() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRoom | null>(null);
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [editingBooking, setEditingBooking] = useState<BookingWithRoom | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ room_id: '', guest_name: '', guest_email: '', guest_phone: '', check_in_date: '', check_out_date: '', number_of_guests: '1', special_requests: '', status: 'pending' as Booking['status'] });
 
   useEffect(() => {
-    fetchBookings();
+    void fetchBookings();
+    void fetchAvailableRooms();
   }, []);
+
+  const fetchAvailableRooms = async () => {
+    const { data, error } = await supabase.from('rooms').select('*').order('name');
+    if (error) { console.error('Error fetching rooms for booking editor:', error); return; }
+    setAvailableRooms((data || []) as Room[]);
+  };
+
+  const openBookingEditor = (booking: BookingWithRoom) => {
+    setEditingBooking(booking);
+    setEditForm({ room_id: booking.room_id, guest_name: booking.guest_name, guest_email: booking.guest_email, guest_phone: booking.guest_phone, check_in_date: booking.check_in_date, check_out_date: booking.check_out_date, number_of_guests: String(booking.number_of_guests), special_requests: booking.special_requests || '', status: booking.status });
+  };
+
+  const saveBookingChanges = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingBooking) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase.rpc('admin_update_booking', {
+        p_booking_id: editingBooking.id, p_room_id: editForm.room_id, p_guest_name: editForm.guest_name,
+        p_guest_email: editForm.guest_email, p_guest_phone: editForm.guest_phone, p_check_in: editForm.check_in_date,
+        p_check_out: editForm.check_out_date, p_guests: Number(editForm.number_of_guests),
+        p_special_requests: editForm.special_requests, p_status: editForm.status,
+      });
+      if (error) throw error;
+      setEditingBooking(null);
+      setSelectedBooking(null);
+      await fetchBookings();
+      window.alert('Booking updated. The total amount has been recalculated.');
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      window.alert(error instanceof Error ? error.message : 'Unable to update booking. Check availability and the entered details.');
+    } finally { setSavingEdit(false); }
+  };
 
   const fetchBookings = async () => {
     try {
