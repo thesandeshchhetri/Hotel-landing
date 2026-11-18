@@ -143,7 +143,7 @@ BEGIN
 
   SELECT * INTO v_room
   FROM public.rooms
-  WHERE id = p_room_id AND is_active = true
+  WHERE id = p_room_id AND (is_active = true OR id = v_current.room_id)
   FOR UPDATE;
 
   IF NOT FOUND THEN
