@@ -25,6 +25,28 @@ function Layout() {
   }, []);
 
   useEffect(() => {
+    const theme = siteSettings?.theme;
+    if (!theme) return;
+    const root = document.documentElement;
+    root.style.setProperty('--site-primary', theme.primary || '#d97706');
+    root.style.setProperty('--site-secondary', theme.secondary || '#1f2937');
+    root.style.setProperty('--site-accent', theme.accent || '#f59e0b');
+    root.style.setProperty('--site-background', theme.background || '#f9fafb');
+    root.style.setProperty('--site-text', theme.text || '#111827');
+    const palette = (hex: string, prefix: string) => {
+      const clean = /^#[0-9a-f]{6}$/i.test(hex) ? hex.slice(1) : 'd97706';
+      const rgb = [0, 2, 4].map((index) => parseInt(clean.slice(index, index + 2), 16));
+      const shades: Record<number, number> = { 50: 0.94, 100: 0.86, 200: 0.72, 300: 0.55, 400: 0.34, 500: 0.16, 600: 0, 700: -0.15, 800: -0.30, 900: -0.45, 950: -0.60 };
+      Object.entries(shades).forEach(([shade, amount]) => {
+        const channels = rgb.map((channel) => Math.round(channel * (1 - Math.abs(amount)) + (amount >= 0 ? 255 : 0) * Math.abs(amount)));
+        root.style.setProperty('--site-' + prefix + '-' + shade, channels.join(' '));
+      });
+    };
+    palette(theme.primary || '#d97706', 'amber');
+    palette(theme.accent || '#f59e0b', 'orange');
+  }, [siteSettings]);
+
+  useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
