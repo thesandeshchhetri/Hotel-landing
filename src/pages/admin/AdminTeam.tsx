@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { Plus, Edit, Trash2, UserCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { TeamMember } from '../../types';
@@ -8,6 +8,7 @@ function AdminTeam() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     role: '',
@@ -38,15 +39,42 @@ function AdminTeam() {
     }
   };
 
+  const handleImageSelection = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      alert('Choose a JPG, PNG, WEBP or AVIF image up to 5 MB.');
+      return;
+    }
+    setSelectedImageFile(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
+      let imageUrl = formData.image_url;
+      if (selectedImageFile) {
+        const refreshed = await supabase.auth.refreshSession();
+        if (refreshed.error || !refreshed.data.session) throw new Error('Your admin session has expired. Sign in again.');
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!userData.user || userData.user.app_metadata?.role !== 'admin') throw new Error('Administrator access is required.');
+        const safeName = selectedImageFile.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+        const path = userData.user.id + '/team/' + crypto.randomUUID() + '-' + safeName;
+        const { error: uploadError } = await supabase.storage.from('room-images').upload(path, selectedImageFile, {
+          cacheControl: '3600', contentType: selectedImageFile.type, upsert: false,
+        });
+        if (uploadError) throw uploadError;
+        imageUrl = supabase.storage.from('room-images').getPublicUrl(path).data.publicUrl;
+      }
+
       const memberData = {
         name: formData.name,
         role: formData.role,
         bio: formData.bio || null,
-        image_url: formData.image_url || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
+        image_url: imageUrl || 'https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=400',
         email: formData.email || null,
         display_order: parseInt(formData.display_order),
         is_active: formData.is_active,
@@ -67,6 +95,7 @@ function AdminTeam() {
 
       setShowModal(false);
       setEditingMember(null);
+      setSelectedImageFile(null);
       resetForm();
       fetchTeamMembers();
     } catch (error) {
@@ -77,6 +106,7 @@ function AdminTeam() {
 
   const handleEdit = (member: TeamMember) => {
     setEditingMember(member);
+    setSelectedImageFile(null);
     setFormData({
       name: member.name,
       role: member.role,
@@ -258,7 +288,13 @@ function AdminTeam() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload image from device</label>
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={handleImageSelection} className="w-full text-sm text-gray-700" />
+                {selectedImageFile && <p className="mt-1 text-xs text-green-700">Selected: {selectedImageFile.name}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Or use Image URL</label>
                 <input
                   type="url"
                   value={formData.image_url}
