@@ -136,6 +136,7 @@ function AdminTeam() {
   };
 
   const resetForm = () => {
+    setSelectedImageFile(null);
     setFormData({
       name: '',
       role: '',
