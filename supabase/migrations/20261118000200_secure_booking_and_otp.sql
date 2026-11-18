@@ -62,6 +62,11 @@ BEGIN
     RAISE EXCEPTION 'No rooms available for these dates';
   END IF;
 
+  PERFORM pg_advisory_xact_lock(hashtext(lower(trim(p_guest_email))));
+  UPDATE public.bookings
+    SET status = 'cancelled', cancelled_at = now(), cancelled_reason = 'OTP expired', updated_at = now()
+    WHERE status = 'pending' AND otp_expires_at <= now();
+
   SELECT count(*) INTO v_recent FROM public.bookings
     WHERE lower(guest_email) = lower(trim(p_guest_email))
       AND created_at > now() - interval '1 hour';
@@ -114,3 +119,56 @@ REVOKE ALL ON FUNCTION public.create_booking_with_otp(uuid,text,text,text,date,d
 REVOKE ALL ON FUNCTION public.verify_booking_otp(uuid,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_booking_with_otp(uuid,text,text,text,date,date,integer,text,text,timestamptz) TO service_role;
 GRANT EXECUTE ON FUNCTION public.verify_booking_otp(uuid,text) TO service_role;
+
+
+-- Public availability must still account for private bookings. This SECURITY DEFINER
+-- function exposes room inventory only, never guest or booking details.
+DROP FUNCTION IF EXISTS public.get_available_rooms(date, date);
+
+CREATE FUNCTION public.get_available_rooms(p_check_in date, p_check_out date)
+RETURNS TABLE (
+  id uuid,
+  name text,
+  description text,
+  price_per_night decimal,
+  capacity integer,
+  available_inventory integer,
+  total_inventory integer,
+  size_sqft integer,
+  amenities jsonb,
+  images jsonb,
+  room_type text,
+  is_active boolean,
+  created_at timestamptz,
+  updated_at timestamptz
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF p_check_in IS NULL OR p_check_out IS NULL
+     OR p_check_in < current_date OR p_check_out <= p_check_in THEN
+    RAISE EXCEPTION 'Invalid booking dates';
+  END IF;
+
+  RETURN QUERY
+  SELECT r.id, r.name, r.description, r.price_per_night, r.capacity,
+    (r.total_inventory - (
+      SELECT count(*)::integer
+      FROM public.bookings b
+      WHERE b.room_id = r.id
+        AND (b.status = 'confirmed' OR (b.status = 'pending' AND b.otp_expires_at > now()))
+        AND b.check_in_date < p_check_out
+        AND b.check_out_date > p_check_in
+    ))::integer AS available_inventory,
+    r.total_inventory, r.size_sqft, r.amenities, r.images, r.room_type,
+    r.is_active, r.created_at, r.updated_at
+  FROM public.rooms r
+  WHERE r.is_active = true AND r.total_inventory > 0;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_available_rooms(date, date) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_available_rooms(date, date) TO anon, authenticated;
