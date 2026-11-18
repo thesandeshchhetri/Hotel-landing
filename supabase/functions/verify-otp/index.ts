@@ -1,142 +1,31 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
-};
-
-interface VerifyOtpRequest {
-  bookingId: string;
-  otp: string;
+import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+const headers = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, Authorization, Apikey, X-Client-Info" };
+const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
+async function otpDigest(otp: string, secret: string) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(otp)));
+  return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
-
-Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 200,
-      headers: corsHeaders,
-    });
-  }
-
+Deno.serve(async req => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  if (req.method !== "POST") return reply({ error: "Method not allowed" }, 405);
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { bookingId, otp }: VerifyOtpRequest = await req.json();
-
-    if (!bookingId || !otp) {
-      return new Response(
-        JSON.stringify({ error: 'Booking ID and OTP are required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Fetch the booking
-    const { data: booking, error: fetchError } = await supabaseClient
-      .from('bookings')
-      .select('*')
-      .eq('id', bookingId)
-      .maybeSingle();
-
-    if (fetchError || !booking) {
-      return new Response(
-        JSON.stringify({ error: 'Booking not found' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Check if OTP matches
-    if (booking.otp_code !== otp) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid OTP', success: false }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Check if OTP has expired
-    const otpExpires = new Date(booking.otp_expires_at);
-    if (otpExpires < new Date()) {
-      return new Response(
-        JSON.stringify({ error: 'OTP has expired', success: false }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Check if already verified
-    if (booking.otp_verified) {
-      return new Response(
-        JSON.stringify({ error: 'Booking already verified', success: false }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Update booking to mark as verified and confirmed
-    const { error: updateError } = await supabaseClient
-      .from('bookings')
-      .update({
-        otp_verified: true,
-        verified_at: new Date().toISOString(),
-        status: 'confirmed',
-        confirmed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', bookingId);
-
-    if (updateError) {
-      console.error('Error updating booking:', updateError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify booking' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Fetch updated booking
-    const { data: updatedBooking, error: refetchError } = await supabaseClient
-      .from('bookings')
-      .select('*')
-      .eq('id', bookingId)
-      .single();
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        booking: updatedBooking,
-        message: 'Booking verified successfully',
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    console.error('Error verifying OTP:', error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to verify OTP' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    const url = Deno.env.get("SUPABASE_URL"), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), secret = Deno.env.get("OTP_HASH_SECRET");
+    if (!url || !key || !secret) return reply({ success: false, error: "Verification service is not configured." }, 503);
+    const { bookingId, otp } = await req.json();
+    if (typeof bookingId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(bookingId) || typeof otp !== "string" || !/^\d{6}$/.test(otp))
+      return reply({ success: false, error: "Invalid or expired verification code." }, 400);
+    const db = createClient(url, key);
+    const { data: ok, error } = await db.rpc("verify_booking_otp", { p_booking_id: bookingId, p_otp_hash: await otpDigest(otp, secret) });
+    if (error) { console.error("OTP verification failed:", error.message); return reply({ success: false, error: "Unable to verify this code." }, 500); }
+    if (!ok) return reply({ success: false, error: "Invalid or expired verification code." }, 400);
+    const { data: booking, error: readError } = await db.from("bookings")
+      .select("id,room_id,guest_name,guest_email,guest_phone,check_in_date,check_out_date,number_of_guests,special_requests,total_amount,status,created_at,room:rooms(id,name,room_type,size_sqft,images)")
+      .eq("id", bookingId).single();
+    if (readError || !booking) { console.error("Confirmation fetch failed:", readError?.message); return reply({ success: false, error: "Booking verified, but confirmation could not be loaded." }, 500); }
+    return reply({ success: true, booking });
+  } catch (e) {
+    console.error("verify-otp error:", e);
+    return reply({ success: false, error: "Unable to verify this code." }, 500);
   }
 });

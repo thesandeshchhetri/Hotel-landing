@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { CheckCircle, Calendar, Users, Phone, Mail, Home, ArrowRight } from 'lucide-react';
 import type { Booking, Room } from '../types';
-import { supabase } from '../lib/supabase';
+
 
 function BookingConfirmation() {
   const location = useLocation();
@@ -13,29 +13,18 @@ function BookingConfirmation() {
   const bookingId = location.state?.bookingId;
 
   useEffect(() => {
-    if (!bookingId) {
-      navigate('/');
-      return;
-    }
-    fetchBooking();
-  }, [bookingId, navigate]);
-
-  const fetchBooking = async () => {
+    if (!bookingId) { navigate('/'); return; }
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*, room:rooms(*)')
-        .eq('id', bookingId)
-        .maybeSingle();
-
-      if (error) throw error;
-      setBooking(data as Booking);
+      const raw = sessionStorage.getItem('confirmedBooking');
+      if (!raw) { navigate('/'); return; }
+      const parsed = JSON.parse(raw) as Booking;
+      if (parsed.id !== bookingId || parsed.status !== 'confirmed') { navigate('/'); return; }
+      setBooking(parsed);
     } catch (error) {
-      console.error('Failed to fetch booking:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      console.error('Unable to load confirmation:', error);
+      navigate('/');
+    } finally { setLoading(false); }
+  }, [bookingId, navigate]);
 
   if (loading) {
     return (

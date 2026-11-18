@@ -72,7 +72,8 @@ function VerifyOtp() {
     try {
       const result = await verifyBookingOtp(bookingId, otpCode);
 
-      if (result.success) {
+      if (result.success && result.booking) {
+        sessionStorage.setItem('confirmedBooking', JSON.stringify(result.booking));
         setSuccess(true);
         sessionStorage.removeItem('pendingBooking');
         setTimeout(() => {

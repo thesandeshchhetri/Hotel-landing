@@ -1,9 +1,5 @@
 import { supabase } from './supabase';
 import type { HotelInfo, Room, TeamMember, Booking, BookingFormData, AvailableRoom } from '../types';
-import { sendOTPEmail, initEmailJS } from './emailjs';
-
-// Initialize EmailJS on module load
-initEmailJS();
 
 export async function getHotelInfo(): Promise<HotelInfo | null> {
   const { data, error } = await supabase
@@ -73,50 +69,16 @@ export async function getBookingByOtp(email: string, otp: string): Promise<Booki
   return data;
 }
 
-export async function createBooking(formData: BookingFormData & { otp_code: string; otp_expires_at: string; total_amount: number }): Promise<Booking> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .insert([formData])
-    .select()
-    .single();
+export async function createBooking(formData: BookingFormData): Promise<{ id: string }> {
+  const { data, error } = await supabase.functions.invoke('create-booking', { body: formData });
+  if (error) throw error;
+  if (!data?.id) throw new Error('Booking could not be created.');
+  return { id: data.id };
+}
 
+export async function verifyBookingOtp(bookingId: string, otp: string): Promise<{ success: boolean; booking?: Booking; error?: string }> {
+  const { data, error } = await supabase.functions.invoke('verify-otp', { body: { bookingId, otp } });
   if (error) throw error;
   return data;
 }
 
-export async function verifyBookingOtp(bookingId: string, otp: string): Promise<{ success: boolean; booking?: Booking }> {
-  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ bookingId, otp }),
-  });
-
-  const result = await response.json();
-  return result;
-}
-
-export async function sendOtpEmail(email: string, otp: string, guestName: string): Promise<{ success: boolean }> {
-  // Get hotel name for email
-  let hotelName = 'Thamel Heritage Hotel';
-  try {
-    const hotelInfo = await getHotelInfo();
-    if (hotelInfo?.name) {
-      hotelName = hotelInfo.name;
-    }
-  } catch (e) {
-    console.log('Using default hotel name');
-  }
-
-  // Use EmailJS to send OTP
-  const result = await sendOTPEmail({
-    to_email: email,
-    to_name: guestName,
-    otp_code: otp,
-    hotel_name: hotelName,
-  });
-
-  return { success: result.success };
-}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Calendar, Users, User, Mail, Phone, MessageSquare, ArrowLeft, Check, ArrowRight, Loader2 } from 'lucide-react';
 import type { Room } from '../types';
-import { getRoomById, createBooking, sendOtpEmail } from '../lib/api';
+import { getRoomById, createBooking } from '../lib/api';
 
 function Booking() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -67,9 +67,6 @@ function Booking() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const generateOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,25 +75,16 @@ function Booking() {
 
     setSubmitting(true);
     try {
-      const otp = generateOtp();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-      const totalAmount = room.price_per_night * nights;
-
       const booking = await createBooking({
         room_id: room.id,
-        guest_name: formData.guest_name,
-        guest_email: formData.guest_email,
-        guest_phone: formData.guest_phone,
+        guest_name: formData.guest_name.trim(),
+        guest_email: formData.guest_email.trim().toLowerCase(),
+        guest_phone: formData.guest_phone.trim(),
         check_in_date: checkIn,
         check_out_date: checkOut,
         number_of_guests: guests,
-        special_requests: formData.special_requests || null,
-        total_amount: totalAmount,
-        otp_code: otp,
-        otp_expires_at: expiresAt.toISOString(),
+        special_requests: formData.special_requests.trim() || undefined,
       });
-
-      await sendOtpEmail(formData.guest_email, otp, formData.guest_name);
 
       sessionStorage.setItem('pendingBooking', JSON.stringify({
         id: booking.id,
