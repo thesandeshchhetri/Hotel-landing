@@ -333,7 +333,10 @@ function AdminBookings() {
                 </p>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => openBookingEditor(selectedBooking)} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-white hover:bg-amber-700">
+                  <Pencil size={16} /> Edit Booking
+                </button>
                 <button
                   onClick={() => setSelectedBooking(null)}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -364,6 +367,62 @@ function AdminBookings() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {editingBooking && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="border-b px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">Edit Booking</h2>
+              <p className="text-sm text-gray-500">Availability and total price are checked securely when saving.</p>
+            </div>
+            <form onSubmit={saveBookingChanges} className="space-y-4 p-6">
+              <label className="block text-sm font-medium text-gray-700">Room
+                <select required value={editForm.room_id} onChange={(event) => setEditForm({ ...editForm, room_id: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5">
+                  {availableRooms.map((room) => <option key={room.id} value={room.id}>{room.name} - NPR {Number(room.price_per_night).toLocaleString()} per night</option>)}
+                </select>
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-gray-700">Guest name
+                  <input required value={editForm.guest_name} onChange={(event) => setEditForm({ ...editForm, guest_name: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Email
+                  <input required type="email" value={editForm.guest_email} onChange={(event) => setEditForm({ ...editForm, guest_email: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Phone
+                  <input required value={editForm.guest_phone} onChange={(event) => setEditForm({ ...editForm, guest_phone: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Guests
+                  <input required type="number" min="1" max={availableRooms.find((room) => room.id === editForm.room_id)?.capacity || 20} value={editForm.number_of_guests} onChange={(event) => setEditForm({ ...editForm, number_of_guests: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Check-in
+                  <input required type="date" min={new Date().toISOString().slice(0, 10)} value={editForm.check_in_date} onChange={(event) => setEditForm({ ...editForm, check_in_date: event.target.value, check_out_date: editForm.check_out_date <= event.target.value ? '' : editForm.check_out_date })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Check-out
+                  <input required type="date" min={editForm.check_in_date ? new Date(new Date(editForm.check_in_date + 'T00:00:00').getTime() + 86400000).toISOString().slice(0, 10) : undefined} value={editForm.check_out_date} onChange={(event) => setEditForm({ ...editForm, check_out_date: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+              </div>
+              <label className="block text-sm font-medium text-gray-700">Special requests
+                <textarea rows={3} maxLength={2000} value={editForm.special_requests} onChange={(event) => setEditForm({ ...editForm, special_requests: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+              </label>
+              <label className="block text-sm font-medium text-gray-700">Status
+                <select value={editForm.status} onChange={(event) => setEditForm({ ...editForm, status: event.target.value as Booking['status'] })} className="mt-1 w-full rounded-lg border px-3 py-2.5">
+                  <option value="pending">Pending</option>
+                  {editingBooking.otp_verified && <option value="confirmed">Confirmed</option>}
+                  <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </label>
+              {!editingBooking.otp_verified && <p className="text-xs text-amber-700">Guest email verification is required before confirming this booking.</p>}
+              <div className="flex justify-end gap-3 border-t pt-4">
+                <button type="button" disabled={savingEdit} onClick={() => setEditingBooking(null)} className="rounded-lg border px-4 py-2.5 text-gray-700">Cancel</button>
+                <button type="submit" disabled={savingEdit || availableRooms.length === 0} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2.5 font-semibold text-white disabled:opacity-60">
+                  <Save size={17} /> {savingEdit ? 'Saving...' : 'Save Booking'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
