@@ -288,12 +288,12 @@ function AdminBookings() {
                 </div>
               </div>
 
-              {selectedBooking.special_requests && (
-                <div className="border-t pt-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Special Requests</h3>
-                  <p className="text-gray-700">{selectedBooking.special_requests}</p>
-                </div>
-              )}
+              <div className="border-t pt-6">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Special Requests</h3>
+                <p className="whitespace-pre-wrap text-gray-700">
+                  {selectedBooking.special_requests?.trim() || 'No special requests provided.'}
+                </p>
+              </div>
 
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
