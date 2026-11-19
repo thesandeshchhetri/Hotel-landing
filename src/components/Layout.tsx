@@ -45,6 +45,22 @@ function Layout() {
   }, []);
 
   useEffect(() => {
+    const hotelName = hotelInfo?.name?.trim();
+    document.title = hotelName || 'Hotel';
+
+    let favicon = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      document.head.appendChild(favicon);
+    }
+
+    const logoUrl = siteSettings?.page_images?.browser_logo;
+    favicon.type = logoUrl ? '' : 'image/svg+xml';
+    favicon.href = logoUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23b45309' width='100' height='100' rx='18'/%3E%3Cpath d='M25 75V25h12l13 19 13-19h12v50H62V48L50 65 38 48v27z' fill='white'/%3E%3C/svg%3E";
+  }, [hotelInfo?.name, siteSettings?.page_images?.browser_logo]);
+
+  useEffect(() => {
     const theme = siteSettings?.theme;
     if (!theme) return;
     const root = document.documentElement;
