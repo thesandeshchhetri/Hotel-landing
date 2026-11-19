@@ -444,12 +444,12 @@ function Booking() {
 
                   <div className="border-t border-gray-200 mt-4 pt-4">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-600">${room.price_per_night} x {nights} night{nights === 1 ? '' : 's'}</span>
-                      <span className="font-medium">${totalAmount.toFixed(2)}</span>
+                      <span className="text-gray-600">रु. {Number(room.price_per_night).toLocaleString('en-IN')} x {nights} night{nights === 1 ? '' : 's'}</span>
+                      <span className="font-medium">रु. {totalAmount.toLocaleString('en-IN')}</span>
                     </div>
                     <div className="flex justify-between items-center text-lg font-bold">
                       <span>Total</span>
-                      <span className="text-amber-600">${totalAmount.toFixed(2)}</span>
+                      <span className="text-amber-600">रु. {totalAmount.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </div>
