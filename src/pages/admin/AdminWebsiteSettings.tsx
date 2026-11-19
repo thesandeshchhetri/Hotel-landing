@@ -21,7 +21,7 @@ const DEFAULT_THEME: Theme = {
 };
 
 const IMAGE_SLOTS = [
-  { key: 'browser_logo', label: 'Browser tab hotel logo (square image recommended)' },
+  { key: 'browser_logo', label: 'Hotel logo for navigation bar and browser tab (square image recommended)' },
   { key: 'homepage_hero', label: 'Homepage hero' },
   { key: 'home_gallery_1', label: 'Homepage gallery image 1' },
   { key: 'home_gallery_2', label: 'Homepage gallery image 2' },
