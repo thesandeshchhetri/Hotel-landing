@@ -126,9 +126,13 @@ function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-xl">T</span>
-              </div>
+              {siteSettings?.page_images?.browser_logo ? (
+                <img src={siteSettings.page_images.browser_logo} alt={hotelInfo?.name || 'Hotel logo'} className="h-12 w-12 rounded-lg object-contain bg-white p-1 shadow-md" />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center shadow-md">
+                  <Hotel size={25} className="text-white" />
+                </div>
+              )}
               <div>
                 <h1 className={`text-xl font-serif font-bold transition-colors ${
                   isScrolled ? 'text-gray-900' : 'text-white'
@@ -224,9 +228,13 @@ function Layout() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">T</span>
-                </div>
+                {siteSettings?.page_images?.browser_logo ? (
+                  <img src={siteSettings.page_images.browser_logo} alt={hotelInfo?.name || 'Hotel logo'} className="h-12 w-12 rounded-lg object-contain bg-white p-1" />
+                ) : (
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center">
+                    <Hotel size={25} className="text-white" />
+                  </div>
+                )}
                 <div>
                   <h3 className="text-xl font-serif font-bold">
                     {hotelInfo?.name || 'Thamel Heritage Hotel'}
