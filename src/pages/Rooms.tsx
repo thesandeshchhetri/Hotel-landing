@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Calendar, Users, Search, Filter, X, ArrowRight, Check } from 'lucide-react';
+import { Calendar, Users, Search, ArrowRight } from 'lucide-react';
 import type { AvailableRoom, Room } from '../types';
 import { getAvailableRooms, getRooms } from '../lib/api';
 
@@ -13,7 +13,6 @@ function Rooms() {
   const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || '');
   const [guests, setGuests] = useState(Number(searchParams.get('guests')) || 1);
   const [roomType, setRoomType] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
@@ -244,7 +243,7 @@ function Rooms() {
                           </span>
                         </div>
                         <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-md">
-                          <div className="text-2xl font-bold text-amber-600">${room.price_per_night}</div>
+                          <div className="text-2xl font-bold text-amber-600">रु. {Number(room.price_per_night).toLocaleString('en-IN')}</div>
                           <div className="text-xs text-gray-500 text-center">per night</div>
                         </div>
                         {!isBookable && (

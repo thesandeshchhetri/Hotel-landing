@@ -1,26 +1,86 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Menu, X, Phone, Mail, MapPin } from 'lucide-react';
-import type { HotelInfo } from '../types';
-import { getHotelInfo } from '../lib/api';
+import { Menu, X, Phone, Mail, MapPin, Hotel } from 'lucide-react';
+import type { HotelInfo, SiteSettings } from '../types';
+import { getHotelInfo, getSiteSettings } from '../lib/api';
 
 function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hotelInfo, setHotelInfo] = useState<HotelInfo | null>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    async function fetchHotelInfo() {
-      try {
-        const info = await getHotelInfo();
-        setHotelInfo(info);
-      } catch (error) {
-        console.error('Failed to fetch hotel info:', error);
+    let isMounted = true;
+
+    async function loadWebsiteData() {
+      const [hotelResult, settingsResult] = await Promise.allSettled([
+        getHotelInfo(),
+        getSiteSettings(),
+      ]);
+
+      if (!isMounted) return;
+
+      if (hotelResult.status === 'fulfilled') {
+        setHotelInfo(hotelResult.value);
+      } else {
+        console.error('Failed to fetch hotel info:', hotelResult.reason);
       }
+
+      if (settingsResult.status === 'fulfilled') {
+        setSiteSettings(settingsResult.value);
+      } else {
+        console.error('Failed to fetch website settings:', settingsResult.reason);
+      }
+
+      setIsInitialLoading(false);
     }
-    fetchHotelInfo();
+
+    loadWebsiteData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    const hotelName = hotelInfo?.name?.trim();
+    document.title = hotelName || 'Hotel';
+
+    let favicon = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+    if (!favicon) {
+      favicon = document.createElement('link');
+      favicon.rel = 'icon';
+      document.head.appendChild(favicon);
+    }
+
+    const logoUrl = siteSettings?.page_images?.browser_logo;
+    favicon.type = logoUrl ? '' : 'image/svg+xml';
+    favicon.href = logoUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23b45309' width='100' height='100' rx='18'/%3E%3Cpath d='M25 75V25h12l13 19 13-19h12v50H62V48L50 65 38 48v27z' fill='white'/%3E%3C/svg%3E";
+  }, [hotelInfo?.name, siteSettings?.page_images?.browser_logo]);
+
+  useEffect(() => {
+    const theme = siteSettings?.theme;
+    if (!theme) return;
+    const root = document.documentElement;
+    root.style.setProperty('--site-primary', theme.primary || '#d97706');
+    root.style.setProperty('--site-secondary', theme.secondary || '#1f2937');
+    root.style.setProperty('--site-accent', theme.accent || '#f59e0b');
+    root.style.setProperty('--site-background', theme.background || '#f9fafb');
+    root.style.setProperty('--site-text', theme.text || '#111827');
+    const palette = (hex: string, prefix: string) => {
+      const clean = /^#[0-9a-f]{6}$/i.test(hex) ? hex.slice(1) : 'd97706';
+      const rgb = [0, 2, 4].map((index) => parseInt(clean.slice(index, index + 2), 16));
+      const shades: Record<number, number> = { 50: 0.94, 100: 0.86, 200: 0.72, 300: 0.55, 400: 0.34, 500: 0.16, 600: 0, 700: -0.15, 800: -0.30, 900: -0.45, 950: -0.60 };
+      Object.entries(shades).forEach(([shade, amount]) => {
+        const channels = rgb.map((channel) => Math.round(channel * (1 - Math.abs(amount)) + (amount >= 0 ? 255 : 0) * Math.abs(amount)));
+        root.style.setProperty('--site-' + prefix + '-' + shade, channels.join(' '));
+      });
+    };
+    palette(theme.primary || '#d97706', 'amber');
+    palette(theme.accent || '#f59e0b', 'orange');
+  }, [siteSettings]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,6 +94,26 @@ function Layout() {
     setIsMenuOpen(false);
   }, [location]);
 
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-white to-orange-50 px-6">
+        <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-xl animate-pulse">
+          <Hotel size={38} strokeWidth={1.6} />
+          <span className="absolute -inset-2 rounded-3xl border-2 border-amber-300/60 animate-ping" />
+        </div>
+        <h1 className="text-2xl font-serif font-bold tracking-wide text-gray-900">
+          Preparing your stay
+        </h1>
+        <p className="mt-2 text-sm text-gray-500">
+          Getting the hotel experience ready for you...
+        </p>
+        <div className="mt-6 h-1.5 w-40 overflow-hidden rounded-full bg-amber-100">
+          <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <header
@@ -46,9 +126,13 @@ function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-xl">T</span>
-              </div>
+              {siteSettings?.page_images?.browser_logo ? (
+                <img src={siteSettings.page_images.browser_logo} alt={hotelInfo?.name || 'Hotel logo'} className="h-12 w-12 rounded-lg object-contain bg-white p-1 shadow-md" />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center shadow-md">
+                  <Hotel size={25} className="text-white" />
+                </div>
+              )}
               <div>
                 <h1 className={`text-xl font-serif font-bold transition-colors ${
                   isScrolled ? 'text-gray-900' : 'text-white'
@@ -58,7 +142,7 @@ function Layout() {
                 <p className={`text-xs transition-colors ${
                   isScrolled ? 'text-gray-600' : 'text-amber-100'
                 }`}>
-                  Thamel, Kathmandu
+                  {hotelInfo?.address || 'Hotel location'}
                 </p>
               </div>
             </Link>
@@ -136,7 +220,7 @@ function Layout() {
       </header>
 
       <main className="flex-grow">
-        <Outlet context={{ hotelInfo }} />
+        <Outlet context={{ hotelInfo, siteSettings }} />
       </main>
 
       <footer className="bg-gray-900 text-white">
@@ -144,9 +228,13 @@ function Layout() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">T</span>
-                </div>
+                {siteSettings?.page_images?.browser_logo ? (
+                  <img src={siteSettings.page_images.browser_logo} alt={hotelInfo?.name || 'Hotel logo'} className="h-12 w-12 rounded-lg object-contain bg-white p-1" />
+                ) : (
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center">
+                    <Hotel size={25} className="text-white" />
+                  </div>
+                )}
                 <div>
                   <h3 className="text-xl font-serif font-bold">
                     {hotelInfo?.name || 'Thamel Heritage Hotel'}
@@ -162,13 +250,13 @@ function Layout() {
             <div>
               <h4 className="text-lg font-semibold mb-6">Quick Links</h4>
               <ul className="space-y-3">
-                {['Rooms', 'About', 'Our Team', 'Book Now'].map((item) => (
-                  <li key={item}>
+                {[{ label: 'Rooms', path: '/rooms' }, { label: 'About', path: '/about' }, { label: 'Our Team', path: '/team' }, { label: 'Book Now', path: '/rooms' }].map((item) => (
+                  <li key={item.label}>
                     <Link
-                      to={`/${item.toLowerCase().replace(' ', '-')}`}
+                      to={item.path}
                       className="text-gray-400 hover:text-amber-500 transition-colors"
                     >
-                      {item}
+                      {item.label}
                     </Link>
                   </li>
                 ))}

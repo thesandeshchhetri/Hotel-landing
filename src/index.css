@@ -1,3 +1,43 @@
+:root {
+  --site-primary: #d97706;
+  --site-secondary: #1f2937;
+  --site-accent: #f59e0b;
+  --site-background: #f9fafb;
+  --site-text: #111827;
+  --site-amber-50: 255 251 235;
+  --site-amber-100: 254 243 199;
+  --site-amber-200: 253 230 138;
+  --site-amber-300: 252 211 77;
+  --site-amber-400: 251 191 36;
+  --site-amber-500: 245 158 11;
+  --site-amber-600: 217 119 6;
+  --site-amber-700: 180 83 9;
+  --site-amber-800: 146 64 14;
+  --site-amber-900: 120 53 15;
+  --site-amber-950: 69 26 3;
+  --site-orange-50: 255 247 237;
+  --site-orange-100: 255 237 213;
+  --site-orange-200: 254 215 170;
+  --site-orange-300: 253 186 116;
+  --site-orange-400: 251 146 60;
+  --site-orange-500: 249 115 22;
+  --site-orange-600: 234 88 12;
+  --site-orange-700: 194 65 12;
+  --site-orange-800: 154 52 18;
+  --site-orange-900: 124 45 18;
+  --site-orange-950: 67 20 7;
+}
+
+body {
+  background-color: var(--site-background);
+  color: var(--site-text);
+}
+
+.bg-gray-900 { background-color: var(--site-secondary) !important; }
+.bg-gray-800 { background-color: color-mix(in srgb, var(--site-secondary) 88%, white) !important; }
+.bg-gray-50 { background-color: var(--site-background) !important; }
+.text-gray-900 { color: var(--site-text) !important; }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -53,3 +93,10 @@
     scrollbar-width: none;
   }
 }
+
+/* Admin-configurable public website theme overrides */
+body { background-color: var(--site-background) !important; color: var(--site-text) !important; }
+.bg-gray-900 { background-color: var(--site-secondary) !important; }
+.bg-gray-800 { background-color: color-mix(in srgb, var(--site-secondary) 88%, white) !important; }
+.bg-gray-50 { background-color: var(--site-background) !important; }
+.text-gray-900 { color: var(--site-text) !important; }

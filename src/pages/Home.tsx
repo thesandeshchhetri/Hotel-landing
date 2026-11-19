@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { Calendar, Users, Star, ChevronRight, ArrowRight, Wifi, Coffee, Car, Dumbbell, Utensils, Sparkles } from 'lucide-react';
-import type { HotelInfo, Room, TeamMember } from '../types';
+import type { HotelInfo, Room, TeamMember, SiteSettings } from '../types';
 import { getRooms, getTeamMembers } from '../lib/api';
 
 function Home() {
-  const { hotelInfo } = useOutletContext<{ hotelInfo: HotelInfo | null }>();
+  const { hotelInfo, siteSettings } = useOutletContext<{ hotelInfo: HotelInfo | null; siteSettings: SiteSettings | null }>();
   const [featuredRooms, setFeaturedRooms] = useState<Room[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [checkIn, setCheckIn] = useState('');
@@ -51,7 +51,7 @@ function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('${hotelInfo?.hero_image || 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=1600'}')`,
+            backgroundImage: `url('${siteSettings?.page_images?.homepage_hero || hotelInfo?.hero_image || 'https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=1600'}')`,
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60"></div>
@@ -296,22 +296,22 @@ function Home() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <img
-                src="https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.home_gallery_1 || "https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Kathmandu"
                 className="rounded-lg shadow-lg w-full h-48 object-cover"
               />
               <img
-                src="https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.home_gallery_2 || "https://images.pexels.com/photos/2387871/pexels-photo-2387871.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Nepal heritage"
                 className="rounded-lg shadow-lg w-full h-48 object-cover mt-8"
               />
               <img
-                src="https://images.pexels.com/photos/2161463/pexels-photo-2161463.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.home_gallery_3 || "https://images.pexels.com/photos/2161463/pexels-photo-2161463.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Temple"
                 className="rounded-lg shadow-lg w-full h-48 object-cover"
               />
               <img
-                src="https://images.pexels.com/photos/2161449/pexels-photo-2161449.jpeg?auto=compress&cs=tinysrgb&w=800"
+                src={siteSettings?.page_images?.home_gallery_4 || "https://images.pexels.com/photos/2161449/pexels-photo-2161449.jpeg?auto=compress&cs=tinysrgb&w=800"}
                 alt="Mountain view"
                 className="rounded-lg shadow-lg w-full h-48 object-cover mt-8"
               />

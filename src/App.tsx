@@ -9,11 +9,13 @@ import Booking from './pages/Booking';
 import VerifyOtp from './pages/VerifyOtp';
 import BookingConfirmation from './pages/BookingConfirmation';
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminResetPassword from './pages/admin/AdminResetPassword';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminRooms from './pages/admin/AdminRooms';
 import AdminBookings from './pages/admin/AdminBookings';
 import AdminTeam from './pages/admin/AdminTeam';
 import AdminHotelInfo from './pages/admin/AdminHotelInfo';
+import AdminWebsiteSettings from './pages/admin/AdminWebsiteSettings';
 
 function App() {
   return (
@@ -30,11 +32,13 @@ function App() {
           <Route path="booking-confirmation" element={<BookingConfirmation />} />
         </Route>
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/reset-password" element={<AdminResetPassword />} />
         <Route path="/admin" element={<AdminDashboard />}>
           <Route path="rooms" element={<AdminRooms />} />
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="team" element={<AdminTeam />} />
           <Route path="hotel-info" element={<AdminHotelInfo />} />
+          <Route path="website-settings" element={<AdminWebsiteSettings />} />
         </Route>
       </Routes>
     </Router>

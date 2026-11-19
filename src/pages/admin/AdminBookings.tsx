@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { Search, CheckCircle, XCircle, Clock, Eye, Pencil, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Booking, Room } from '../../types';
 
@@ -13,10 +13,48 @@ function AdminBookings() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<BookingWithRoom | null>(null);
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [editingBooking, setEditingBooking] = useState<BookingWithRoom | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ room_id: '', guest_name: '', guest_email: '', guest_phone: '', check_in_date: '', check_out_date: '', number_of_guests: '1', special_requests: '', status: 'pending' as Booking['status'] });
 
   useEffect(() => {
-    fetchBookings();
+    void fetchBookings();
+    void fetchAvailableRooms();
   }, []);
+
+  const fetchAvailableRooms = async () => {
+    const { data, error } = await supabase.from('rooms').select('*').order('name');
+    if (error) { console.error('Error fetching rooms for booking editor:', error); return; }
+    setAvailableRooms((data || []) as Room[]);
+  };
+
+  const openBookingEditor = (booking: BookingWithRoom) => {
+    setEditingBooking(booking);
+    setEditForm({ room_id: booking.room_id, guest_name: booking.guest_name, guest_email: booking.guest_email, guest_phone: booking.guest_phone, check_in_date: booking.check_in_date, check_out_date: booking.check_out_date, number_of_guests: String(booking.number_of_guests), special_requests: booking.special_requests || '', status: booking.status });
+  };
+
+  const saveBookingChanges = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingBooking) return;
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase.rpc('admin_update_booking', {
+        p_booking_id: editingBooking.id, p_room_id: editForm.room_id, p_guest_name: editForm.guest_name,
+        p_guest_email: editForm.guest_email, p_guest_phone: editForm.guest_phone, p_check_in: editForm.check_in_date,
+        p_check_out: editForm.check_out_date, p_guests: Number(editForm.number_of_guests),
+        p_special_requests: editForm.special_requests, p_status: editForm.status,
+      });
+      if (error) throw error;
+      setEditingBooking(null);
+      setSelectedBooking(null);
+      await fetchBookings();
+      window.alert('Booking updated. The total amount has been recalculated.');
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      window.alert(error instanceof Error ? error.message : 'Unable to update booking. Check availability and the entered details.');
+    } finally { setSavingEdit(false); }
+  };
 
   const fetchBookings = async () => {
     try {
@@ -36,8 +74,8 @@ function AdminBookings() {
 
   const updateBookingStatus = async (id: string, status: string) => {
     try {
-      const updates: any = {
-        status,
+      const updates: Partial<Booking> = {
+        status: status as Booking['status'],
         updated_at: new Date().toISOString(),
       };
 
@@ -172,7 +210,7 @@ function AdminBookings() {
                         <div className="text-gray-500">to {new Date(booking.check_out_date).toLocaleDateString()}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium">${booking.total_amount}</td>
+                    <td className="px-6 py-4 font-medium">रु. {Number(booking.total_amount).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
                         {getStatusIcon(booking.status)}
@@ -196,13 +234,15 @@ function AdminBookings() {
                       </button>
                       {booking.status === 'pending' && (
                         <>
-                          <button
-                            onClick={() => updateBookingStatus(booking.id, 'confirmed')}
-                            className="text-green-600 hover:text-green-700 mr-2"
-                            title="Confirm"
-                          >
-                            <CheckCircle size={18} />
-                          </button>
+                          {booking.otp_verified && (
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                              className="text-green-600 hover:text-green-700 mr-2"
+                              title="Confirm"
+                            >
+                              <CheckCircle size={18} />
+                            </button>
+                          )}
                           <button
                             onClick={() => updateBookingStatus(booking.id, 'cancelled')}
                             className="text-red-600 hover:text-red-700"
@@ -284,18 +324,21 @@ function AdminBookings() {
               <div className="border-t pt-6">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-medium">Total Amount</span>
-                  <span className="text-2xl font-bold text-amber-600">${selectedBooking.total_amount}</span>
+                  <span className="text-2xl font-bold text-amber-600">रु. {Number(selectedBooking.total_amount).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
-              {selectedBooking.special_requests && (
-                <div className="border-t pt-6">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Special Requests</h3>
-                  <p className="text-gray-700">{selectedBooking.special_requests}</p>
-                </div>
-              )}
+              <div className="border-t pt-6">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Special Requests</h3>
+                <p className="whitespace-pre-wrap text-gray-700">
+                  {selectedBooking.special_requests?.trim() || 'No special requests provided.'}
+                </p>
+              </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex flex-wrap justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => openBookingEditor(selectedBooking)} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-white hover:bg-amber-700">
+                  <Pencil size={16} /> Edit Booking
+                </button>
                 <button
                   onClick={() => setSelectedBooking(null)}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -304,15 +347,17 @@ function AdminBookings() {
                 </button>
                 {selectedBooking.status === 'pending' && (
                   <>
-                    <button
-                      onClick={() => {
-                        updateBookingStatus(selectedBooking.id, 'confirmed');
-                        setSelectedBooking(null);
-                      }}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      Confirm
-                    </button>
+                    {selectedBooking.otp_verified && (
+                      <button
+                        onClick={() => {
+                          updateBookingStatus(selectedBooking.id, 'confirmed');
+                          setSelectedBooking(null);
+                        }}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      >
+                        Confirm
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         updateBookingStatus(selectedBooking.id, 'cancelled');
@@ -326,6 +371,62 @@ function AdminBookings() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {editingBooking && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="border-b px-6 py-4">
+              <h2 className="text-xl font-bold text-gray-900">Edit Booking</h2>
+              <p className="text-sm text-gray-500">Availability and total price are checked securely when saving.</p>
+            </div>
+            <form onSubmit={saveBookingChanges} className="space-y-4 p-6">
+              <label className="block text-sm font-medium text-gray-700">Room
+                <select required value={editForm.room_id} onChange={(event) => setEditForm({ ...editForm, room_id: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5">
+                  {availableRooms.map((room) => <option key={room.id} value={room.id}>{room.name} - रु. {Number(room.price_per_night).toLocaleString('en-IN')} per night</option>)}
+                </select>
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm font-medium text-gray-700">Guest name
+                  <input required value={editForm.guest_name} onChange={(event) => setEditForm({ ...editForm, guest_name: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Email
+                  <input required type="email" value={editForm.guest_email} onChange={(event) => setEditForm({ ...editForm, guest_email: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Phone
+                  <input required value={editForm.guest_phone} onChange={(event) => setEditForm({ ...editForm, guest_phone: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Guests
+                  <input required type="number" min="1" max={availableRooms.find((room) => room.id === editForm.room_id)?.capacity || 20} value={editForm.number_of_guests} onChange={(event) => setEditForm({ ...editForm, number_of_guests: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Check-in
+                  <input required type="date" value={editForm.check_in_date} onChange={(event) => setEditForm({ ...editForm, check_in_date: event.target.value, check_out_date: editForm.check_out_date <= event.target.value ? '' : editForm.check_out_date })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">Check-out
+                  <input required type="date" min={editForm.check_in_date ? new Date(new Date(editForm.check_in_date + 'T00:00:00').getTime() + 86400000).toISOString().slice(0, 10) : undefined} value={editForm.check_out_date} onChange={(event) => setEditForm({ ...editForm, check_out_date: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+                </label>
+              </div>
+              <label className="block text-sm font-medium text-gray-700">Special requests
+                <textarea rows={3} maxLength={2000} value={editForm.special_requests} onChange={(event) => setEditForm({ ...editForm, special_requests: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5" />
+              </label>
+              <label className="block text-sm font-medium text-gray-700">Status
+                <select value={editForm.status} onChange={(event) => setEditForm({ ...editForm, status: event.target.value as Booking['status'] })} className="mt-1 w-full rounded-lg border px-3 py-2.5">
+                  <option value="pending">Pending</option>
+                  {editingBooking.otp_verified && <option value="confirmed">Confirmed</option>}
+                  <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </label>
+              {!editingBooking.otp_verified && <p className="text-xs text-amber-700">Guest email verification is required before confirming this booking.</p>}
+              <div className="flex justify-end gap-3 border-t pt-4">
+                <button type="button" disabled={savingEdit} onClick={() => setEditingBooking(null)} className="rounded-lg border px-4 py-2.5 text-gray-700">Cancel</button>
+                <button type="submit" disabled={savingEdit || availableRooms.length === 0} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2.5 font-semibold text-white disabled:opacity-60">
+                  <Save size={17} /> {savingEdit ? 'Saving...' : 'Save Booking'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

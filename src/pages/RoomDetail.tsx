@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Calendar, Users, Check, ArrowLeft, MapPin, Star, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Check, ArrowLeft, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import type { Room } from '../types';
 import { getRoomById, getAvailableRooms } from '../lib/api';
 
@@ -240,13 +240,13 @@ function RoomDetail() {
                       <div className="bg-gray-50 p-4 rounded-lg mb-4">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-gray-600">
-                            ${room.price_per_night} x {nights} night{nights > 1 ? 's' : ''}
+                            रु. {Number(room.price_per_night).toLocaleString('en-IN')} x {nights} night{nights > 1 ? 's' : ''}
                           </span>
-                          <span className="font-semibold">${(room.price_per_night * nights).toFixed(2)}</span>
+                          <span className="font-semibold">रु. {(room.price_per_night * nights).toLocaleString('en-IN')}</span>
                         </div>
                         <div className="flex justify-between items-center text-lg font-bold">
                           <span>Total</span>
-                          <span className="text-amber-600">${totalPrice.toFixed(2)}</span>
+                          <span className="text-amber-600">रु. {totalPrice.toLocaleString('en-IN')}</span>
                         </div>
                         {availableCount !== null && (
                           <p className={`text-sm mt-2 ${availableCount > 0 ? 'text-green-600' : 'text-red-600'}`}>
