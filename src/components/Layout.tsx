@@ -92,7 +92,7 @@ function Layout() {
           Getting the hotel experience ready for you...
         </p>
         <div className="mt-6 h-1.5 w-40 overflow-hidden rounded-full bg-amber-100">
-          <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 animate-[loading_1.4s_ease-in-out_infinite]" />
+          <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 animate-pulse" />
         </div>
       </div>
     );
