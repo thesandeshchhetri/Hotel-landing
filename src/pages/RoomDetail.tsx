@@ -242,11 +242,11 @@ function RoomDetail() {
                           <span className="text-gray-600">
                             ${room.price_per_night} x {nights} night{nights > 1 ? 's' : ''}
                           </span>
-                          <span className="font-semibold">${(room.price_per_night * nights).toFixed(2)}</span>
+                          <span className="font-semibold">रु. {(room.price_per_night * nights).toLocaleString('en-IN')}</span>
                         </div>
                         <div className="flex justify-between items-center text-lg font-bold">
                           <span>Total</span>
-                          <span className="text-amber-600">${totalPrice.toFixed(2)}</span>
+                          <span className="text-amber-600">रु. {totalPrice.toLocaleString('en-IN')}</span>
                         </div>
                         {availableCount !== null && (
                           <p className={`text-sm mt-2 ${availableCount > 0 ? 'text-green-600' : 'text-red-600'}`}>
