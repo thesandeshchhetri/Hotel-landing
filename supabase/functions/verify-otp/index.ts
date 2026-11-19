@@ -49,7 +49,7 @@ Deno.serve(async req => {
           ["Nights", String(nights)],
           ["Guests", String(booking.number_of_guests)],
           ["Special requests", booking.special_requests || "None"],
-          ["Total amount", "NPR " + Number(booking.total_amount).toLocaleString()],
+          ["Total amount", "रु. " + Number(booking.total_amount).toLocaleString("en-IN")],
           ["Status", "Confirmed"],
         ];
         const rows = details.map(([label, value]) => "<tr><td style='padding:9px 12px;color:#667085;border-bottom:1px solid #eee'>" + escapeHtml(label) + "</td><td style='padding:9px 12px;color:#101828;border-bottom:1px solid #eee;font-weight:600'>" + escapeHtml(value) + "</td></tr>").join("");
