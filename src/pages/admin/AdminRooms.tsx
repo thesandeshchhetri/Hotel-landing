@@ -386,7 +386,7 @@ function AdminRooms() {
                   <textarea id="room-description" value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} required rows={3} maxLength={2000} className="w-full rounded-lg border px-3 py-2.5 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100" />
                 </div>
                 <div>
-                  <label htmlFor="room-price" className="mb-1 block text-sm font-medium text-gray-700">Price per night (NPR) *</label>
+                  <label htmlFor="room-price" className="mb-1 block text-sm font-medium text-gray-700">Price per night (रु.) *</label>
                   <input id="room-price" type="number" min="1" step="0.01" value={formData.price_per_night} onChange={(event) => setFormData({ ...formData, price_per_night: event.target.value })} required className="w-full rounded-lg border px-3 py-2.5 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100" />
                 </div>
                 <div>
