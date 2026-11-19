@@ -210,7 +210,7 @@ function AdminBookings() {
                         <div className="text-gray-500">to {new Date(booking.check_out_date).toLocaleDateString()}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 font-medium">${booking.total_amount}</td>
+                    <td className="px-6 py-4 font-medium">रु. {Number(booking.total_amount).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
                         {getStatusIcon(booking.status)}
@@ -324,7 +324,7 @@ function AdminBookings() {
               <div className="border-t pt-6">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-medium">Total Amount</span>
-                  <span className="text-2xl font-bold text-amber-600">${selectedBooking.total_amount}</span>
+                  <span className="text-2xl font-bold text-amber-600">रु. {Number(selectedBooking.total_amount).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -385,7 +385,7 @@ function AdminBookings() {
             <form onSubmit={saveBookingChanges} className="space-y-4 p-6">
               <label className="block text-sm font-medium text-gray-700">Room
                 <select required value={editForm.room_id} onChange={(event) => setEditForm({ ...editForm, room_id: event.target.value })} className="mt-1 w-full rounded-lg border px-3 py-2.5">
-                  {availableRooms.map((room) => <option key={room.id} value={room.id}>{room.name} - NPR {Number(room.price_per_night).toLocaleString()} per night</option>)}
+                  {availableRooms.map((room) => <option key={room.id} value={room.id}>{room.name} - रु. {Number(room.price_per_night).toLocaleString('en-IN')} per night</option>)}
                 </select>
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
