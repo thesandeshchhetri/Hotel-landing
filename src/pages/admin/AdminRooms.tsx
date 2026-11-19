@@ -345,7 +345,7 @@ function AdminRooms() {
                       </div>
                     </td>
                     <td className="px-6 py-4 capitalize text-gray-700">{room.room_type}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900">NPR {Number(room.price_per_night).toLocaleString()}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">रु. {Number(room.price_per_night).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-4 text-gray-700">{room.total_inventory}</td>
                     <td className="px-6 py-4"><span className={room.is_active ? 'rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700' : 'rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600'}>{room.is_active ? 'Active' : 'Inactive'}</span></td>
                     <td className="px-6 py-4 text-right">
