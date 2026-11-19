@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Menu, X, Phone, Mail, MapPin } from 'lucide-react';
+import { Menu, X, Phone, Mail, MapPin, Hotel } from 'lucide-react';
 import type { HotelInfo, SiteSettings } from '../types';
 import { getHotelInfo, getSiteSettings } from '../lib/api';
 
@@ -8,20 +8,40 @@ function Layout() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hotelInfo, setHotelInfo] = useState<HotelInfo | null>(null);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    async function fetchHotelInfo() {
-      try {
-        const info = await getHotelInfo();
-        setHotelInfo(info);
-      } catch (error) {
-        console.error('Failed to fetch hotel info:', error);
+    let isMounted = true;
+
+    async function loadWebsiteData() {
+      const [hotelResult, settingsResult] = await Promise.allSettled([
+        getHotelInfo(),
+        getSiteSettings(),
+      ]);
+
+      if (!isMounted) return;
+
+      if (hotelResult.status === 'fulfilled') {
+        setHotelInfo(hotelResult.value);
+      } else {
+        console.error('Failed to fetch hotel info:', hotelResult.reason);
       }
+
+      if (settingsResult.status === 'fulfilled') {
+        setSiteSettings(settingsResult.value);
+      } else {
+        console.error('Failed to fetch website settings:', settingsResult.reason);
+      }
+
+      setIsInitialLoading(false);
     }
-    fetchHotelInfo();
-    getSiteSettings().then(setSiteSettings).catch((error) => console.error('Failed to fetch website settings:', error));
+
+    loadWebsiteData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -57,6 +77,26 @@ function Layout() {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location]);
+
+  if (isInitialLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-white to-orange-50 px-6">
+        <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white shadow-xl animate-pulse">
+          <Hotel size={38} strokeWidth={1.6} />
+          <span className="absolute -inset-2 rounded-3xl border-2 border-amber-300/60 animate-ping" />
+        </div>
+        <h1 className="text-2xl font-serif font-bold tracking-wide text-gray-900">
+          Preparing your stay
+        </h1>
+        <p className="mt-2 text-sm text-gray-500">
+          Getting the hotel experience ready for you...
+        </p>
+        <div className="mt-6 h-1.5 w-40 overflow-hidden rounded-full bg-amber-100">
+          <div className="h-full w-1/2 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 animate-[loading_1.4s_ease-in-out_infinite]" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
