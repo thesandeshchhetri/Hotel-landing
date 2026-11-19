@@ -134,13 +134,13 @@ function Booking() {
 
     if (!formData.guest_email.trim()) {
       newErrors.guest_email = 'Email is required';
-    } else if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(formData.guest_email)) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.guest_email.trim())) {
       newErrors.guest_email = 'Invalid email format';
     }
 
     if (!formData.guest_phone.trim()) {
       newErrors.guest_phone = 'Phone number is required';
-    } else if (!/^\\+?[\\d\\s-]{10,}$/.test(formData.guest_phone)) {
+    } else if (!/^(?:\+977)?9[6-8]\d{8}$/.test(formData.guest_phone.replace(/[\s-]/g, ''))) {
       newErrors.guest_phone = 'Invalid phone number format';
     }
 
