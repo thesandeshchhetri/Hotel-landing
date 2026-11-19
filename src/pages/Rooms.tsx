@@ -243,7 +243,7 @@ function Rooms() {
                           </span>
                         </div>
                         <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-lg shadow-md">
-                          <div className="text-2xl font-bold text-amber-600">{Number(room.price_per_night).toLocaleString('en-IN')}</div>
+                          <div className="text-2xl font-bold text-amber-600">रु. {Number(room.price_per_night).toLocaleString('en-IN')}</div>
                           <div className="text-xs text-gray-500 text-center">per night</div>
                         </div>
                         {!isBookable && (
