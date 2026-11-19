@@ -1,7 +1,8 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Home, Users, Calendar, Settings, LogOut, Menu, X, Bed, UserCircle, Palette } from 'lucide-react';
+import { Home, Users, Calendar, Settings, LogOut, Menu, X, Bed, UserCircle, Palette, Hotel } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getSiteSettings } from '../../lib/api';
 
 interface AdminSession {
   email: string;
@@ -13,6 +14,17 @@ function AdminDashboard() {
   const navigate = useNavigate();
   const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [hotelLogo, setHotelLogo] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    getSiteSettings()
+      .then((settings) => {
+        if (active) setHotelLogo(settings?.page_images?.browser_logo || '');
+      })
+      .catch((error) => console.error('Could not load hotel logo:', error));
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -68,12 +80,16 @@ function AdminDashboard() {
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-800">
           <Link to="/" className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg flex items-center justify-center">
-              <span className="font-bold text-lg">T</span>
+            <div className="w-10 h-10 overflow-hidden rounded-lg bg-gray-800 flex items-center justify-center">
+              {hotelLogo ? (
+                <img src={hotelLogo} alt="Hotel logo" className="h-full w-full object-contain" />
+              ) : (
+                <Hotel size={24} className="text-amber-500" aria-hidden="true" />
+              )}
             </div>
             <div>
               <h1 className="font-bold">Admin Panel</h1>
-              <p className="text-xs text-gray-400">Thamel Heritage</p>
+              <p className="text-xs text-gray-400">Hotel Management</p>
             </div>
           </Link>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 rounded-lg hover:bg-gray-800" aria-label="Close navigation">
